@@ -1,5 +1,4 @@
 import Foundation
-import Vision
 import UIKit
 import React
 import CoreImage
@@ -39,12 +38,13 @@ class SensitiveScan: NSObject {
     
     // Run face detection on a background queue
     DispatchQueue.global(qos: .userInitiated).async {
-      self.detectFacesWithCoordinates(in: cgImage, imageSize: finalImage.size) { faceData in
+      ScanforFace.detectFaces(in: cgImage, imageSize: finalImage.size) { faceCoordinates in
         DispatchQueue.main.async {
-          let hasFaces = faceData.count > 0
+          let hasFaces = faceCoordinates.count > 0
+          let faceData = faceCoordinates.map { $0.toDictionary() }
           resolver([
             "hasFaces": hasFaces,
-            "faceCount": faceData.count,
+            "faceCount": faceCoordinates.count,
             "message": hasFaces ? "Sensitive content detected!" : "No sensitive content found",
             "faces": faceData
           ])
@@ -53,43 +53,6 @@ class SensitiveScan: NSObject {
     }
   }
   
-  private func detectFacesWithCoordinates(in image: CGImage, imageSize: CGSize, completion: @escaping ([[String: Any]]) -> Void) {
-    let request = VNDetectFaceRectanglesRequest()
-    let handler = VNImageRequestHandler(cgImage: image, options: [:])
-    
-    do {
-      try handler.perform([request])
-      
-      if let observations = request.results as? [VNFaceObservation] {
-        let faceData = observations.map { observation -> [String: Any] in
-          // Vision framework uses normalized coordinates (0-1) with origin at bottom-left
-          // UIImage uses pixel coordinates with origin at top-left
-          let boundingBox = observation.boundingBox
-          
-          // Convert to pixel coordinates
-          let pixelX = boundingBox.origin.x * imageSize.width
-          let pixelWidth = boundingBox.size.width * imageSize.width
-          let pixelHeight = boundingBox.size.height * imageSize.height
-          
-          // Flip Y coordinate from bottom-left to top-left origin
-          let pixelY = imageSize.height - (boundingBox.origin.y * imageSize.height + pixelHeight)
-          
-          return [
-            "x": pixelX,
-            "y": pixelY,
-            "width": pixelWidth,
-            "height": pixelHeight,
-            "confidence": observation.confidence
-          ]
-        }
-        completion(faceData)
-      } else {
-        completion([])
-      }
-    } catch {
-      completion([])
-    }
-  }
   
   @objc
   func blurFacesInImage(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
@@ -117,9 +80,9 @@ class SensitiveScan: NSObject {
     
     // Run face detection and blurring on a background queue
     DispatchQueue.global(qos: .userInitiated).async {
-      self.detectFacesWithCoordinates(in: cgImage, imageSize: originalImage.size) { faceData in
+      ScanforFace.detectFaces(in: cgImage, imageSize: originalImage.size) { faceCoordinates in
         
-        guard !faceData.isEmpty else {
+        guard !faceCoordinates.isEmpty else {
           // No faces found, return original image path
           DispatchQueue.main.async {
             resolver([
@@ -133,7 +96,7 @@ class SensitiveScan: NSObject {
         }
         
         // Apply blur to faces
-        if let blurredImage = self.blurFacesInUIImage(originalImage, faceData: faceData) {
+        if let blurredImage = self.blurFacesInUIImage(originalImage, faceCoordinates: faceCoordinates) {
           // Save blurred image to temporary location
           let tempDir = FileManager.default.temporaryDirectory
           let fileName = (processedPath as NSString).lastPathComponent
@@ -150,8 +113,8 @@ class SensitiveScan: NSObject {
                 resolver([
                   "success": true,
                   "blurredImagePath": "file://\(blurredImagePath)",
-                  "facesBlurred": faceData.count,
-                  "message": "Successfully blurred \(faceData.count) face(s)"
+                  "facesBlurred": faceCoordinates.count,
+                  "message": "Successfully blurred \(faceCoordinates.count) face(s)"
                 ])
               }
             } catch {
@@ -173,7 +136,7 @@ class SensitiveScan: NSObject {
     }
   }
   
-  private func blurFacesInUIImage(_ image: UIImage, faceData: [[String: Any]]) -> UIImage? {
+  private func blurFacesInUIImage(_ image: UIImage, faceCoordinates: [SensitiveCoordinate]) -> UIImage? {
     // Start with original image
     UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
     image.draw(at: .zero)
@@ -185,11 +148,11 @@ class SensitiveScan: NSObject {
     }
     
     // Apply blur to each face region
-    for face in faceData {
-      guard let x = face["x"] as? CGFloat,
-            let y = face["y"] as? CGFloat,
-            let width = face["width"] as? CGFloat,
-            let height = face["height"] as? CGFloat else { continue }
+    for coordinate in faceCoordinates {
+      let x = coordinate.x
+      let y = coordinate.y
+      let width = coordinate.width
+      let height = coordinate.height
       
       // Add padding around face for better blur coverage
       let padding: CGFloat = 30
