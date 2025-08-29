@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kohzhirong.privo-android",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Privo needs access to your photo library to scan images for sensitive content like faces and protect your privacy.",
+        "NSCameraUsageDescription": "Privo needs access to your camera to take photos and scan them for sensitive content to protect your privacy."
+      }
     },
     "android": {
       "adaptiveIcon": {
