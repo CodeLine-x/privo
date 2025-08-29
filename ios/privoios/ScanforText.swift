@@ -36,8 +36,19 @@ class ScanforText {
           )
         }
         
-        // Return all detected text coordinates
-        completion(allTextCoordinates)
+        // Extract all detected text for PII analysis
+        let allDetectedTexts = allTextCoordinates.compactMap { $0.textContent }
+        
+        // Use PIIDetector to identify sensitive text
+        let piiTexts = PIIDetector.detectPII(in: allDetectedTexts)
+        
+        // Filter coordinates to only return PII text
+        let piiCoordinates = allTextCoordinates.filter { coordinate in
+            guard let textContent = coordinate.textContent else { return false }
+            return piiTexts.contains(textContent)
+        }
+        
+        completion(piiCoordinates)
       } else {
         completion([])
       }

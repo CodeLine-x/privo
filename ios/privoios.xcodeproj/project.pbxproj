@@ -10,9 +10,10 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		2A8BBA552E6160AA00CE7A10 /* privoios/SensitiveScan.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */; };
 		2A8BBA562E6160AA00CE7A10 /* privoios/SensitiveScan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */; };
-		2AA26B8D2E61FA1F009EDD73 /* ScanforFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26B8A2E61FA1F009EDD73 /* ScanforFace.swift */; };
-		2AA26B8E2E61FA1F009EDD73 /* ScanforText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26B8B2E61FA1F009EDD73 /* ScanforText.swift */; };
-		2AA26B8F2E61FA1F009EDD73 /* SensitiveCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26B8C2E61FA1F009EDD73 /* SensitiveCoordinates.swift */; };
+		2AA26BB42E620D39009EDD73 /* ScanforText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB22E620D39009EDD73 /* ScanforText.swift */; };
+		2AA26BB52E620D39009EDD73 /* PIIDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB02E620D39009EDD73 /* PIIDetector.swift */; };
+		2AA26BB62E620D39009EDD73 /* ScanforFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB12E620D39009EDD73 /* ScanforFace.swift */; };
+		2AA26BB72E620D39009EDD73 /* SensitiveCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB32E620D39009EDD73 /* SensitiveCoordinates.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		528D9E737772195D8908DA11 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02126BA1AFD96E8E8E5F772 /* ExpoModulesProvider.swift */; };
 		56E88DE2B8B5D82681B7259F /* libPods-privoios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DE895CE5E7598AC6CD9B9E32 /* libPods-privoios.a */; };
@@ -27,9 +28,10 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = privoios/Info.plist; sourceTree = "<group>"; };
 		2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = privoios/SensitiveScan.m; sourceTree = "<group>"; };
 		2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = privoios/SensitiveScan.swift; sourceTree = "<group>"; };
-		2AA26B8A2E61FA1F009EDD73 /* ScanforFace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforFace.swift; sourceTree = "<group>"; };
-		2AA26B8B2E61FA1F009EDD73 /* ScanforText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforText.swift; sourceTree = "<group>"; };
-		2AA26B8C2E61FA1F009EDD73 /* SensitiveCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveCoordinates.swift; sourceTree = "<group>"; };
+		2AA26BB02E620D39009EDD73 /* PIIDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIIDetector.swift; sourceTree = "<group>"; };
+		2AA26BB12E620D39009EDD73 /* ScanforFace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforFace.swift; sourceTree = "<group>"; };
+		2AA26BB22E620D39009EDD73 /* ScanforText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforText.swift; sourceTree = "<group>"; };
+		2AA26BB32E620D39009EDD73 /* SensitiveCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveCoordinates.swift; sourceTree = "<group>"; };
 		A02126BA1AFD96E8E8E5F772 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-privoios/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = privoios/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -57,9 +59,10 @@
 		13B07FAE1A68108700A75B9A /* privoios */ = {
 			isa = PBXGroup;
 			children = (
-				2AA26B8A2E61FA1F009EDD73 /* ScanforFace.swift */,
-				2AA26B8B2E61FA1F009EDD73 /* ScanforText.swift */,
-				2AA26B8C2E61FA1F009EDD73 /* SensitiveCoordinates.swift */,
+				2AA26BB02E620D39009EDD73 /* PIIDetector.swift */,
+				2AA26BB12E620D39009EDD73 /* ScanforFace.swift */,
+				2AA26BB22E620D39009EDD73 /* ScanforText.swift */,
+				2AA26BB32E620D39009EDD73 /* SensitiveCoordinates.swift */,
 				2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */,
 				2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
@@ -341,10 +344,11 @@
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				528D9E737772195D8908DA11 /* ExpoModulesProvider.swift in Sources */,
 				2A8BBA552E6160AA00CE7A10 /* privoios/SensitiveScan.m in Sources */,
-				2AA26B8D2E61FA1F009EDD73 /* ScanforFace.swift in Sources */,
-				2AA26B8E2E61FA1F009EDD73 /* ScanforText.swift in Sources */,
-				2AA26B8F2E61FA1F009EDD73 /* SensitiveCoordinates.swift in Sources */,
 				2A8BBA562E6160AA00CE7A10 /* privoios/SensitiveScan.swift in Sources */,
+				2AA26BB42E620D39009EDD73 /* ScanforText.swift in Sources */,
+				2AA26BB52E620D39009EDD73 /* PIIDetector.swift in Sources */,
+				2AA26BB62E620D39009EDD73 /* ScanforFace.swift in Sources */,
+				2AA26BB72E620D39009EDD73 /* SensitiveCoordinates.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

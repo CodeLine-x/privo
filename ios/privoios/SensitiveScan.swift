@@ -73,8 +73,8 @@ class SensitiveScan: NSObject {
           return
         }
         
-        // Extract all detected texts for debugging
-        let allDetectedTextsDebug = allCoordinates
+        // Extract PII texts for debugging (these are already filtered by PIIDetector)
+        let piiTextsDebug = allCoordinates
           .compactMap { $0.textContent }
           .joined(separator: ", ")
         
@@ -100,7 +100,7 @@ class SensitiveScan: NSObject {
                   "sensitiveItemsBlurred": allCoordinates.count,
                   "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)",
                   "coordinates": allCoordinates.map { $0.toDictionary() },
-                  "debugDetectedTexts": allDetectedTextsDebug
+                  "debugDetectedTexts": piiTextsDebug
                 ])
               }
             } catch {
