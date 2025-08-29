@@ -13,6 +13,7 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 
+import android.util.Log
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
@@ -25,6 +26,21 @@ class MainApplication : Application(), ReactApplication {
             val packages = PackageList(this).packages
             // Packages that cannot be autolinked yet can be added manually here, for example:
             // packages.add(MyReactNativePackage())
+            // Adding manual registration for our custom native modules
+            Log.d("MainApplication", "Adding custom packages")
+            try {
+              val testPackage = TestPackage()
+              Log.d("MainApplication", "Created TestPackage: $testPackage")
+              packages.add(testPackage)
+              
+              val sensitiveScanPackage = SensitiveScanPackage()
+              Log.d("MainApplication", "Created SensitiveScanPackage: $sensitiveScanPackage")
+              packages.add(sensitiveScanPackage)
+              
+              Log.d("MainApplication", "Packages count: ${packages.size}")
+            } catch (e: Exception) {
+              Log.e("MainApplication", "Error creating packages", e)
+            }
             return packages
           }
 
