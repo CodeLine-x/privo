@@ -73,8 +73,8 @@ class SensitiveScan: NSObject {
           return
         }
         
-        // Extract only sensitive texts for debugging (these are already filtered by Foundation Models)
-        let sensitiveTextsDebug = allCoordinates
+        // Extract all detected texts for debugging
+        let allDetectedTextsDebug = allCoordinates
           .compactMap { $0.textContent }
           .joined(separator: ", ")
         
@@ -100,7 +100,7 @@ class SensitiveScan: NSObject {
                   "sensitiveItemsBlurred": allCoordinates.count,
                   "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)",
                   "coordinates": allCoordinates.map { $0.toDictionary() },
-                  "debugDetectedTexts": sensitiveTextsDebug
+                  "debugDetectedTexts": allDetectedTextsDebug
                 ])
               }
             } catch {
