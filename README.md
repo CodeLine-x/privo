@@ -1,4 +1,4 @@
-# Privo Android - Image Library App
+# Privo - Image Library App
 
 A React Native app built with Expo that allows users to upload and manage images in a beautiful grid layout.
 
