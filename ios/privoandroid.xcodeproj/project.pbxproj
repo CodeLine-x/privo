@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		2A8BBA552E6160AA00CE7A10 /* privoandroid/SensitiveScan.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA532E6160AA00CE7A10 /* privoandroid/SensitiveScan.m */; };
-		2A8BBA562E6160AA00CE7A10 /* privoandroid/SensitiveScan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA542E6160AA00CE7A10 /* privoandroid/SensitiveScan.swift */; };
+		2A8BBA552E6160AA00CE7A10 /* SensitiveScan.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA532E6160AA00CE7A10 /* SensitiveScan.m */; };
+		2A8BBA562E6160AA00CE7A10 /* SensitiveScan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA542E6160AA00CE7A10 /* SensitiveScan.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		528D9E737772195D8908DA11 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02126BA1AFD96E8E8E5F772 /* ExpoModulesProvider.swift */; };
 		56E88DE2B8B5D82681B7259F /* libPods-privoandroid.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DE895CE5E7598AC6CD9B9E32 /* libPods-privoandroid.a */; };
@@ -22,8 +22,8 @@
 		13B07F961A680F5B00A75B9A /* privoandroid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = privoandroid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = privoandroid/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = privoandroid/Info.plist; sourceTree = "<group>"; };
-		2A8BBA532E6160AA00CE7A10 /* privoandroid/SensitiveScan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = privoandroid/SensitiveScan.m; sourceTree = "<group>"; };
-		2A8BBA542E6160AA00CE7A10 /* privoandroid/SensitiveScan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = privoandroid/SensitiveScan.swift; sourceTree = "<group>"; };
+		2A8BBA532E6160AA00CE7A10 /* SensitiveScan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = privoandroid/SensitiveScan.m; sourceTree = "<group>"; };
+		2A8BBA542E6160AA00CE7A10 /* SensitiveScan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = privoandroid/SensitiveScan.swift; sourceTree = "<group>"; };
 		A02126BA1AFD96E8E8E5F772 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-privoandroid/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = privoandroid/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -51,8 +51,8 @@
 		13B07FAE1A68108700A75B9A /* privoandroid */ = {
 			isa = PBXGroup;
 			children = (
-				2A8BBA532E6160AA00CE7A10 /* privoandroid/SensitiveScan.m */,
-				2A8BBA542E6160AA00CE7A10 /* privoandroid/SensitiveScan.swift */,
+				2A8BBA532E6160AA00CE7A10 /* SensitiveScan.m */,
+				2A8BBA542E6160AA00CE7A10 /* SensitiveScan.swift */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* privoandroid-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
@@ -331,8 +331,8 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				528D9E737772195D8908DA11 /* ExpoModulesProvider.swift in Sources */,
-				2A8BBA552E6160AA00CE7A10 /* privoandroid/SensitiveScan.m in Sources */,
-				2A8BBA562E6160AA00CE7A10 /* privoandroid/SensitiveScan.swift in Sources */,
+				2A8BBA552E6160AA00CE7A10 /* SensitiveScan.m in Sources */,
+				2A8BBA562E6160AA00CE7A10 /* SensitiveScan.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -462,7 +462,10 @@
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -517,7 +520,10 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;
