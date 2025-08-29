@@ -33,7 +33,8 @@ class ScanforFace {
             width: pixelWidth,
             height: pixelHeight,
             confidence: observation.confidence,
-            type: .face
+            type: .face,
+            textContent: nil
           )
         }
         completion(faceCoordinates)

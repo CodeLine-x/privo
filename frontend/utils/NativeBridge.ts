@@ -2,80 +2,59 @@ import { NativeModules, Platform, Alert } from "react-native";
 
 const { SensitiveScan } = NativeModules;
 
-export interface FaceCoordinate {
+export interface SensitiveCoordinate {
   x: number;
   y: number;
   width: number;
   height: number;
   confidence: number;
+  textContent?: string;
 }
 
-export interface FaceDetectionResult {
-  hasFaces: boolean;
-  faceCount: number;
-  message: string;
-  faces?: FaceCoordinate[];
-}
-
-export interface BlurResult {
+export interface SensitiveScanResult {
   success: boolean;
   blurredImagePath: string;
-  facesBlurred: number;
+  sensitiveItemsFound: number;
+  sensitiveItemsBlurred: number;
   message: string;
+  coordinates?: SensitiveCoordinate[];
+  debugDetectedTexts?: string;
 }
 
 export class NativeBridge {
-  static async detectFaces(imagePath: string): Promise<FaceDetectionResult> {
-    if (Platform.OS !== "ios") {
-      // Return mock result for non-iOS platforms
-      return {
-        hasFaces: false,
-        faceCount: 0,
-        message: "Face detection only available on iOS"
-      };
-    }
-
-    try {
-      const result = await SensitiveScan.detectFaces(imagePath);
-      return result;
-    } catch (error) {
-      console.error("Error detecting faces:", error);
-      throw error;
-    }
-  }
-
-  static async blurFacesInImage(imagePath: string): Promise<BlurResult> {
+  static async scanAndBlurSensitiveContent(imagePath: string): Promise<SensitiveScanResult> {
     if (Platform.OS !== "ios") {
       // Return mock result for non-iOS platforms
       return {
         success: false,
         blurredImagePath: imagePath,
-        facesBlurred: 0,
-        message: "Face blurring only available on iOS"
+        sensitiveItemsFound: 0,
+        sensitiveItemsBlurred: 0,
+        message: "Sensitive content scanning only available on iOS"
       };
     }
 
     try {
-      const result = await SensitiveScan.blurFacesInImage(imagePath);
+      const result = await SensitiveScan.scanAndBlurSensitiveContent(imagePath);
       return result;
     } catch (error) {
-      console.error("Error blurring faces:", error);
+      console.error("Error scanning and blurring sensitive content:", error);
       throw error;
     }
   }
 
   static async scanImageAndOfferBlur(imagePath: string, onBlurComplete?: (blurredPath: string) => void): Promise<void> {
     try {
-      const blurResult = await this.blurFacesInImage(imagePath);
+      const result = await this.scanAndBlurSensitiveContent(imagePath);
       
-      if (blurResult.success && blurResult.facesBlurred > 0 && onBlurComplete) {
-        onBlurComplete(blurResult.blurredImagePath);
+      if (result.success && result.sensitiveItemsBlurred > 0 && onBlurComplete) {
+        onBlurComplete(result.blurredImagePath);
       }
     } catch (error) {
-      console.error("Error blurring faces:", error);
+      console.error("Error scanning and blurring sensitive content:", error);
       Alert.alert(
-        "Blur Error",
-        "Failed to blur faces. Please try again.",
+        "Scan Error",
+        "Failed to scan and blur sensitive content. Please try again.",
         [{ text: "OK", style: "default" }]
       );
     }
@@ -83,18 +62,18 @@ export class NativeBridge {
 
   static async scanImageAndAlert(imagePath: string): Promise<void> {
     try {
-      const result = await this.detectFaces(imagePath);
+      const result = await this.scanAndBlurSensitiveContent(imagePath);
       
-      if (result.hasFaces) {
+      if (result.sensitiveItemsFound > 0) {
         Alert.alert(
           "Sensitive Content Detected", 
-          `Found ${result.faceCount} face(s) in the image. This content contains privacy-sensitive information.`,
+          `Found ${result.sensitiveItemsFound} sensitive item(s) in the image. Content has been automatically blurred for privacy.`,
           [{ text: "OK", style: "default" }]
         );
       } else {
         Alert.alert(
           "No Sensitive Content", 
-          "No faces detected in this image. Content appears safe to share.",
+          "No sensitive content detected in this image. Content appears safe to share.",
           [{ text: "OK", style: "default" }]
         );
       }

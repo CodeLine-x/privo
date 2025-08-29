@@ -13,64 +13,7 @@ class SensitiveScan: NSObject {
   }
   
   @objc
-  func detectFaces(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
-    // Handle React Native file URIs by removing file:// prefix if present
-    let processedPath = imagePath.replacingOccurrences(of: "file://", with: "")
-    
-    // Try loading with contentsOfFile first, then fall back to Data loading for WebP support
-    var image: UIImage?
-    
-    if let img = UIImage(contentsOfFile: processedPath) {
-      image = img
-    } else if let data = NSData(contentsOfFile: processedPath), let img = UIImage(data: data as Data) {
-      image = img
-    }
-    
-    guard let finalImage = image else {
-      rejecter("IMAGE_LOAD_ERROR", "Failed to load image", nil)
-      return
-    }
-    
-    guard let cgImage = finalImage.cgImage else {
-      rejecter("IMAGE_CONVERSION_ERROR", "Failed to convert image", nil)
-      return
-    }
-    
-    // Run face and text detection on a background queue
-    DispatchQueue.global(qos: .userInitiated).async {
-      let group = DispatchGroup()
-      var faceCoordinates: [SensitiveCoordinate] = []
-      var textCoordinates: [SensitiveCoordinate] = []
-      
-      group.enter()
-      ScanforFace.detectFaces(in: cgImage, imageSize: finalImage.size) { faces in
-        faceCoordinates = faces
-        group.leave()
-      }
-      
-      group.enter()
-      ScanforText.detectText(in: cgImage, imageSize: finalImage.size) { text in
-        textCoordinates = text
-        group.leave()
-      }
-      
-      group.notify(queue: .main) {
-        let allCoordinates = faceCoordinates + textCoordinates
-        let hasSensitiveContent = allCoordinates.count > 0
-        let allData = allCoordinates.map { $0.toDictionary() }
-        resolver([
-          "hasFaces": hasSensitiveContent,
-          "faceCount": allCoordinates.count,
-          "message": hasSensitiveContent ? "Sensitive content detected!" : "No sensitive content found",
-          "faces": allData
-        ])
-      }
-    }
-  }
-  
-  
-  @objc
-  func blurFacesInImage(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+  func scanAndBlurSensitiveContent(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
     // Handle React Native file URIs by removing file:// prefix if present
     let processedPath = imagePath.replacingOccurrences(of: "file://", with: "")
     
@@ -120,12 +63,20 @@ class SensitiveScan: NSObject {
             resolver([
               "success": true,
               "blurredImagePath": imagePath,
-              "facesBlurred": 0,
-              "message": "No sensitive content found to blur"
+              "sensitiveItemsFound": 0,
+              "sensitiveItemsBlurred": 0,
+              "message": "No sensitive content found to blur",
+              "coordinates": [],
+              "debugDetectedTexts": ""
             ])
           }
           return
         }
+        
+        // Extract only sensitive texts for debugging (these are already filtered by Foundation Models)
+        let sensitiveTextsDebug = allCoordinates
+          .compactMap { $0.textContent }
+          .joined(separator: ", ")
         
         // Apply blur to all sensitive content
         if let blurredImage = self.blurSensitiveContent(originalImage, coordinates: allCoordinates) {
@@ -145,8 +96,11 @@ class SensitiveScan: NSObject {
                 resolver([
                   "success": true,
                   "blurredImagePath": "file://\(blurredImagePath)",
-                  "facesBlurred": allCoordinates.count,
-                  "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)"
+                  "sensitiveItemsFound": allCoordinates.count,
+                  "sensitiveItemsBlurred": allCoordinates.count,
+                  "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)",
+                  "coordinates": allCoordinates.map { $0.toDictionary() },
+                  "debugDetectedTexts": sensitiveTextsDebug
                 ])
               }
             } catch {

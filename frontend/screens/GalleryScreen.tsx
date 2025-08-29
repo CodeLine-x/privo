@@ -35,21 +35,25 @@ export function GalleryScreen() {
     setSelectedImages(images);
   };
 
-  const processImageForFaces = async (imagePath: string): Promise<{ hasFaces: boolean; faceCount: number }> => {
+  const processImageForSensitiveContent = async (imagePath: string): Promise<{ hasSensitiveContent: boolean; itemCount: number; detectedTexts?: string }> => {
     try {
-      const result = await NativeBridge.detectFaces(imagePath);
+      const result = await NativeBridge.scanAndBlurSensitiveContent(imagePath);
       
-      if (result.hasFaces) {
-        const blurResult = await NativeBridge.blurFacesInImage(imagePath);
-        if (blurResult.success) {
-          await storageManager.updateImageWithBlurredVersion(imagePath, blurResult.blurredImagePath);
-        }
+      // Use the debug field directly from native response
+      const detectedTexts = result.debugDetectedTexts || "";
+      
+      if (result.success && result.sensitiveItemsBlurred > 0) {
+        await storageManager.updateImageWithBlurredVersion(imagePath, result.blurredImagePath);
       }
       
-      return { hasFaces: result.hasFaces, faceCount: result.faceCount };
+      return { 
+        hasSensitiveContent: result.sensitiveItemsFound > 0, 
+        itemCount: result.sensitiveItemsFound,
+        detectedTexts
+      };
     } catch (error) {
-      console.error("Error processing image for faces:", error);
-      return { hasFaces: false, faceCount: 0 };
+      console.error("Error processing image for sensitive content:", error);
+      return { hasSensitiveContent: false, itemCount: 0 };
     }
   };
 
@@ -78,27 +82,32 @@ export function GalleryScreen() {
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
         
-        // Process each image for face detection and blur
-        let totalFaces = 0;
+        // Process each image for sensitive content detection and blur
+        let totalSensitiveItems = 0;
         let processedCount = 0;
+        let allDetectedTexts: string[] = [];
         
         for (const imagePath of validImages) {
-          const result = await processImageForFaces(imagePath);
-          totalFaces += result.faceCount;
-          if (result.hasFaces) processedCount++;
+          const result = await processImageForSensitiveContent(imagePath);
+          totalSensitiveItems += result.itemCount;
+          if (result.hasSensitiveContent) processedCount++;
+          if (result.detectedTexts) {
+            allDetectedTexts.push(result.detectedTexts);
+          }
         }
         
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
         
-        // Show meaningful feedback
-        if (totalFaces > 0) {
-          Alert.alert(
-            "Photo Processed", 
-            `Found ${totalFaces} face(s) in ${processedCount} image(s). Faces have been automatically blurred for privacy.`
-          );
+        // Show meaningful feedback with detected text debug info
+        if (totalSensitiveItems > 0) {
+          let message = `Found ${totalSensitiveItems} sensitive item(s) in ${processedCount} image. Content has been automatically blurred for privacy.`;
+          
+          message += `\n\nDetected Text: ${allDetectedTexts.join(", ")}`;
+          
+          Alert.alert("Photo Processed", message);
         } else {
-          Alert.alert("Success", "Photo taken successfully! No faces detected.");
+          Alert.alert("Success", "Photo taken successfully! No sensitive content detected.");
         }
       }
     } catch (error) {
@@ -115,27 +124,33 @@ export function GalleryScreen() {
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
         
-        // Process each image for face detection and blur
-        let totalFaces = 0;
+        // Process each image for sensitive content detection and blur
+        let totalSensitiveItems = 0;
         let processedCount = 0;
+        let allDetectedTexts: string[] = [];
         
         for (const imagePath of validImages) {
-          const result = await processImageForFaces(imagePath);
-          totalFaces += result.faceCount;
-          if (result.hasFaces) processedCount++;
+          const result = await processImageForSensitiveContent(imagePath);
+          totalSensitiveItems += result.itemCount;
+          if (result.hasSensitiveContent) processedCount++;
+          if (result.detectedTexts) {
+            allDetectedTexts.push(result.detectedTexts);
+          }
         }
         
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
         
-        // Show meaningful feedback
-        if (totalFaces > 0) {
-          Alert.alert(
-            "Images Processed", 
-            `Selected ${validImages.length} image(s). Found ${totalFaces} face(s) in ${processedCount} image(s). Faces have been automatically blurred for privacy.`
-          );
+        // Show meaningful feedback with detected text debug info
+        if (totalSensitiveItems > 0) {
+          let message = `Selected ${validImages.length} image(s). Found ${totalSensitiveItems} sensitive item(s) in ${processedCount} image(s). Content has been automatically blurred for privacy.`;
+          
+          
+          message += `\n\nDetected Text: ${allDetectedTexts.join(", ")}`;
+          
+          Alert.alert("Images Processed", message);
         } else {
-          Alert.alert("Success", `${validImages.length} image(s) selected! No faces detected.`);
+          Alert.alert("Success", `${validImages.length} image(s) selected! No sensitive content detected.`);
         }
       }
     } catch (error) {
