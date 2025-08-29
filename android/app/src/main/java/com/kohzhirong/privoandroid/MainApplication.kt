@@ -29,10 +29,6 @@ class MainApplication : Application(), ReactApplication {
             // Adding manual registration for our custom native modules
             Log.d("MainApplication", "Adding custom packages")
             try {
-              val simpleTestPackage = SimpleTestPackage()
-              Log.d("MainApplication", "Created SimpleTestPackage: $simpleTestPackage")
-              packages.add(simpleTestPackage)
-              
               val testPackage = TestPackage()
               Log.d("MainApplication", "Created TestPackage: $testPackage")
               packages.add(testPackage)
@@ -62,14 +58,12 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    Log.d("MainApplication", "onCreate called")
     SoLoader.init(this, OpenSourceMergedSoMapping)
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
       // If you opted-in for the New Architecture, we load the native entry point for this app.
       load()
     }
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
-    Log.d("MainApplication", "onCreate completed")
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {

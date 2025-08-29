@@ -3,11 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { NativeModules } from "react-native";
 import { NativeBridge } from "../utils/NativeBridge";
 
-const {
-  SensitiveScan,
-  TestModule: TestModuleNative,
-  SimpleTest,
-} = NativeModules;
+const { SensitiveScan, TestModule: TestModuleNative } = NativeModules;
 
 // Debug logging
 console.log(
@@ -74,26 +70,6 @@ export function TestModule() {
 
   const testSimpleModule = async () => {
     try {
-      console.log("Testing SimpleTest...");
-      console.log("SimpleTest available:", SimpleTest);
-
-      if (SimpleTest) {
-        console.log("SimpleTest methods:", Object.keys(SimpleTest));
-        const result = await SimpleTest.hello();
-        console.log("SimpleTest result:", result);
-        Alert.alert("Test Result", `SimpleTest: ${result}`);
-      } else {
-        console.log("SimpleTest not found in NativeModules");
-        Alert.alert("Error", "SimpleTest not found");
-      }
-    } catch (error) {
-      console.error("SimpleTest error:", error);
-      Alert.alert("Error", `SimpleTest error: ${error}`);
-    }
-  };
-
-  const testTestModule = async () => {
-    try {
       console.log("Testing TestModule...");
       console.log("TestModule available:", TestModuleNative);
 
@@ -116,9 +92,6 @@ export function TestModule() {
     <View style={styles.container}>
       <Text style={styles.title}>Android Native Modules Test</Text>
       <TouchableOpacity style={styles.button} onPress={testSimpleModule}>
-        <Text style={styles.buttonText}>Test SimpleTest Module</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={testTestModule}>
         <Text style={styles.buttonText}>Test TestModule</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={testSensitiveScanModule}>
