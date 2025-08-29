@@ -36,19 +36,34 @@ class SensitiveScan: NSObject {
       return
     }
     
-    // Run face detection on a background queue
+    // Run face and text detection on a background queue
     DispatchQueue.global(qos: .userInitiated).async {
-      ScanforFace.detectFaces(in: cgImage, imageSize: finalImage.size) { faceCoordinates in
-        DispatchQueue.main.async {
-          let hasFaces = faceCoordinates.count > 0
-          let faceData = faceCoordinates.map { $0.toDictionary() }
-          resolver([
-            "hasFaces": hasFaces,
-            "faceCount": faceCoordinates.count,
-            "message": hasFaces ? "Sensitive content detected!" : "No sensitive content found",
-            "faces": faceData
-          ])
-        }
+      let group = DispatchGroup()
+      var faceCoordinates: [SensitiveCoordinate] = []
+      var textCoordinates: [SensitiveCoordinate] = []
+      
+      group.enter()
+      ScanforFace.detectFaces(in: cgImage, imageSize: finalImage.size) { faces in
+        faceCoordinates = faces
+        group.leave()
+      }
+      
+      group.enter()
+      ScanforText.detectText(in: cgImage, imageSize: finalImage.size) { text in
+        textCoordinates = text
+        group.leave()
+      }
+      
+      group.notify(queue: .main) {
+        let allCoordinates = faceCoordinates + textCoordinates
+        let hasSensitiveContent = allCoordinates.count > 0
+        let allData = allCoordinates.map { $0.toDictionary() }
+        resolver([
+          "hasFaces": hasSensitiveContent,
+          "faceCount": allCoordinates.count,
+          "message": hasSensitiveContent ? "Sensitive content detected!" : "No sensitive content found",
+          "faces": allData
+        ])
       }
     }
   }
@@ -78,25 +93,42 @@ class SensitiveScan: NSObject {
       return
     }
     
-    // Run face detection and blurring on a background queue
+    // Run face and text detection and blurring on a background queue
     DispatchQueue.global(qos: .userInitiated).async {
-      ScanforFace.detectFaces(in: cgImage, imageSize: originalImage.size) { faceCoordinates in
+      let group = DispatchGroup()
+      var faceCoordinates: [SensitiveCoordinate] = []
+      var textCoordinates: [SensitiveCoordinate] = []
+      
+      group.enter()
+      ScanforFace.detectFaces(in: cgImage, imageSize: originalImage.size) { faces in
+        faceCoordinates = faces
+        group.leave()
+      }
+      
+      group.enter()
+      ScanforText.detectText(in: cgImage, imageSize: originalImage.size) { text in
+        textCoordinates = text
+        group.leave()
+      }
+      
+      group.notify(queue: .global(qos: .userInitiated)) {
+        let allCoordinates = faceCoordinates + textCoordinates
         
-        guard !faceCoordinates.isEmpty else {
-          // No faces found, return original image path
+        guard !allCoordinates.isEmpty else {
+          // No sensitive content found, return original image path
           DispatchQueue.main.async {
             resolver([
               "success": true,
               "blurredImagePath": imagePath,
               "facesBlurred": 0,
-              "message": "No faces found to blur"
+              "message": "No sensitive content found to blur"
             ])
           }
           return
         }
         
-        // Apply blur to faces
-        if let blurredImage = self.blurFacesInUIImage(originalImage, faceCoordinates: faceCoordinates) {
+        // Apply blur to all sensitive content
+        if let blurredImage = self.blurSensitiveContent(originalImage, coordinates: allCoordinates) {
           // Save blurred image to temporary location
           let tempDir = FileManager.default.temporaryDirectory
           let fileName = (processedPath as NSString).lastPathComponent
@@ -113,8 +145,8 @@ class SensitiveScan: NSObject {
                 resolver([
                   "success": true,
                   "blurredImagePath": "file://\(blurredImagePath)",
-                  "facesBlurred": faceCoordinates.count,
-                  "message": "Successfully blurred \(faceCoordinates.count) face(s)"
+                  "facesBlurred": allCoordinates.count,
+                  "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)"
                 ])
               }
             } catch {
@@ -136,7 +168,7 @@ class SensitiveScan: NSObject {
     }
   }
   
-  private func blurFacesInUIImage(_ image: UIImage, faceCoordinates: [SensitiveCoordinate]) -> UIImage? {
+  private func blurSensitiveContent(_ image: UIImage, coordinates: [SensitiveCoordinate]) -> UIImage? {
     // Start with original image
     UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
     image.draw(at: .zero)
@@ -147,8 +179,8 @@ class SensitiveScan: NSObject {
       return nil
     }
     
-    // Apply blur to each face region
-    for coordinate in faceCoordinates {
+    // Apply blur to each sensitive content region
+    for coordinate in coordinates {
       let x = coordinate.x
       let y = coordinate.y
       let width = coordinate.width

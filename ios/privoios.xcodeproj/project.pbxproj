@@ -10,6 +10,7 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		2A4366BD2E61AC700095B96A /* ScanforFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4366BB2E61AC700095B96A /* ScanforFace.swift */; };
 		2A4366BE2E61AC700095B96A /* SensitiveCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4366BC2E61AC700095B96A /* SensitiveCoordinates.swift */; };
+		2A4366C62E61B2520095B96A /* ScanforText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4366C52E61B2520095B96A /* ScanforText.swift */; };
 		2A8BBA552E6160AA00CE7A10 /* privoios/SensitiveScan.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */; };
 		2A8BBA562E6160AA00CE7A10 /* privoios/SensitiveScan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
@@ -26,6 +27,7 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = privoios/Info.plist; sourceTree = "<group>"; };
 		2A4366BB2E61AC700095B96A /* ScanforFace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforFace.swift; sourceTree = "<group>"; };
 		2A4366BC2E61AC700095B96A /* SensitiveCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveCoordinates.swift; sourceTree = "<group>"; };
+		2A4366C52E61B2520095B96A /* ScanforText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforText.swift; sourceTree = "<group>"; };
 		2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = privoios/SensitiveScan.m; sourceTree = "<group>"; };
 		2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = privoios/SensitiveScan.swift; sourceTree = "<group>"; };
 		A02126BA1AFD96E8E8E5F772 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-privoios/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
@@ -55,6 +57,7 @@
 		13B07FAE1A68108700A75B9A /* privoios */ = {
 			isa = PBXGroup;
 			children = (
+				2A4366C52E61B2520095B96A /* ScanforText.swift */,
 				2A4366BB2E61AC700095B96A /* ScanforFace.swift */,
 				2A4366BC2E61AC700095B96A /* SensitiveCoordinates.swift */,
 				2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */,
@@ -340,6 +343,7 @@
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				528D9E737772195D8908DA11 /* ExpoModulesProvider.swift in Sources */,
 				2A8BBA552E6160AA00CE7A10 /* privoios/SensitiveScan.m in Sources */,
+				2A4366C62E61B2520095B96A /* ScanforText.swift in Sources */,
 				2A8BBA562E6160AA00CE7A10 /* privoios/SensitiveScan.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

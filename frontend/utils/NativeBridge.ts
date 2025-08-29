@@ -66,53 +66,16 @@ export class NativeBridge {
 
   static async scanImageAndOfferBlur(imagePath: string, onBlurComplete?: (blurredPath: string) => void): Promise<void> {
     try {
-      const result = await this.detectFaces(imagePath);
+      const blurResult = await this.blurFacesInImage(imagePath);
       
-      if (result.hasFaces) {
-        Alert.alert(
-          "Sensitive Content Detected", 
-          `Found ${result.faceCount} face(s) in the image. This content contains privacy-sensitive information.`,
-          [
-            { text: "Keep Original", style: "cancel" },
-            { 
-              text: "Blur Faces", 
-              style: "default",
-              onPress: async () => {
-                try {
-                  const blurResult = await this.blurFacesInImage(imagePath);
-                  
-                  if (blurResult.success && onBlurComplete) {
-                    onBlurComplete(blurResult.blurredImagePath);
-                  }
-                  Alert.alert(
-                    "Faces Blurred",
-                    blurResult.message,
-                    [{ text: "OK", style: "default" }]
-                  );
-                } catch (error) {
-                  console.error("Error blurring faces:", error);
-                  Alert.alert(
-                    "Blur Error",
-                    "Failed to blur faces. Please try again.",
-                    [{ text: "OK", style: "default" }]
-                  );
-                }
-              }
-            }
-          ]
-        );
-      } else {
-        Alert.alert(
-          "No Sensitive Content", 
-          "No faces detected in this image. Content appears safe to share.",
-          [{ text: "OK", style: "default" }]
-        );
+      if (blurResult.success && blurResult.facesBlurred > 0 && onBlurComplete) {
+        onBlurComplete(blurResult.blurredImagePath);
       }
     } catch (error) {
-      console.error("Error scanning image:", error);
+      console.error("Error blurring faces:", error);
       Alert.alert(
-        "Scan Error", 
-        "Unable to scan image for sensitive content. Please try again.",
+        "Blur Error",
+        "Failed to blur faces. Please try again.",
         [{ text: "OK", style: "default" }]
       );
     }
