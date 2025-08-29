@@ -5,6 +5,11 @@ const { SensitiveScan } = NativeModules;
 console.log("NativeBridge: Available modules:", Object.keys(NativeModules));
 console.log("NativeBridge: SensitiveScan module:", SensitiveScan);
 console.log("NativeBridge: Platform:", Platform.OS);
+console.log(
+  "NativeBridge: All NativeModules keys:",
+  Object.keys(NativeModules)
+);
+console.log("NativeBridge: NativeModules object:", NativeModules);
 
 // Check if SensitiveScan exists
 if (SensitiveScan) {
