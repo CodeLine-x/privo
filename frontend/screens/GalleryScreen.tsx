@@ -64,60 +64,38 @@ export function GalleryScreen() {
     try {
       const result = await NativeBridge.scanAndBlurSensitiveContent(imagePath);
 
-      // Use the debug field directly from native response
-      const detectedTexts = result.debugDetectedTexts || "";
+      // Always store metadata, whether sensitive content was found or not
+      const detectedTextsArray: string[] = [];
+      const piiTexts: string[] = [];
 
-      if (result.success && result.sensitiveItemsBlurred > 0) {
-        // Parse detected texts from debugDetectedTexts
-        const detectedTexts: string[] = [];
-        const piiTexts: string[] = [];
-
-        if (result.debugDetectedTexts) {
-          // Extract all detected texts and PII texts from the debug string
-          const debugText = result.debugDetectedTexts;
-          const allTextsMatch = debugText.match(
-            /All detected texts: (.+?)(?= \| PII texts:|$)/
-          );
-          const piiTextsMatch = debugText.match(/PII texts: (.+?)$/);
-
-          if (
-            allTextsMatch &&
-            allTextsMatch[1] &&
-            allTextsMatch[1] !== "undefined"
-          ) {
-            const texts = allTextsMatch[1]
-              .split(", ")
-              .filter((text) => text.trim());
-            detectedTexts.push(...texts);
-          }
-
-          if (
-            piiTextsMatch &&
-            piiTextsMatch[1] &&
-            piiTextsMatch[1] !== "undefined"
-          ) {
-            const texts = piiTextsMatch[1]
-              .split(", ")
-              .filter((text) => text.trim());
-            piiTexts.push(...texts);
-          }
-        }
-
-        await storageManager.updateImageWithBlurredVersion(
-          imagePath,
-          result.blurredImagePath,
-          result.faceCount,
-          result.textCount,
-          result.piiCount,
-          detectedTexts,
-          piiTexts
-        );
+      // Extract PII texts from the new array format
+      if (result.piiTexts && Array.isArray(result.piiTexts)) {
+        piiTexts.push(...result.piiTexts);
       }
+
+      // Extract detected texts from debugDetectedTexts (fallback)
+      if (result.debugDetectedTexts) {
+        const texts = result.debugDetectedTexts
+          .split(", ")
+          .filter((text) => text.trim());
+        detectedTextsArray.push(...texts);
+      }
+
+      // Store metadata with detection results
+      await storageManager.updateImageWithBlurredVersion(
+        imagePath,
+        result.blurredImagePath || imagePath, // Use original path if no blur
+        result.faceCount || 0,
+        result.textCount || 0,
+        result.piiCount || 0,
+        detectedTextsArray,
+        piiTexts
+      );
 
       return {
         hasSensitiveContent: result.sensitiveItemsFound > 0,
         itemCount: result.sensitiveItemsFound,
-        detectedTexts,
+        detectedTexts: result.debugDetectedTexts || "",
       };
     } catch (error) {
       console.error("Error processing image for sensitive content:", error);
@@ -125,7 +103,7 @@ export function GalleryScreen() {
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     Alert.alert("Upload Image", "Choose an option", [
       {
         text: "Camera",
@@ -412,11 +390,11 @@ export function GalleryScreen() {
           </View>
         )}
       </ScrollView>
-      
-      <BottomNavBar 
+
+      <BottomNavBar
         activeTab="gallery"
-        onGalleryPress={() => {/* Already on gallery */}}
-        onHomePress={() => {/* Navigate to home if implemented */}}
+        onGalleryPress={() => {}} // Already on gallery
+        onHomePress={() => {}} // Navigate to home if implemented
         onUploadPress={handleUpload}
       />
     </View>

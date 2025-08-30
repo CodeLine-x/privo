@@ -6,37 +6,57 @@ interface BottomNavBarProps {
   onGalleryPress?: () => void;
   onSettingsPress?: () => void;
   onUploadPress?: () => void;
-  activeTab?: 'home' | 'gallery' | 'settings';
+  activeTab?: "home" | "gallery" | "settings";
 }
 
-export function BottomNavBar({ 
-  onHomePress, 
-  onGalleryPress, 
+export function BottomNavBar({
+  onHomePress,
+  onGalleryPress,
   onSettingsPress,
   onUploadPress,
-  activeTab = 'gallery'
+  activeTab = "gallery",
 }: BottomNavBarProps) {
   return (
     <View style={styles.container}>
       {/* Home Tab */}
-      <TouchableOpacity 
-        style={[styles.navItem, activeTab === 'home' && styles.activeNavItem]} 
-        onPress={onHomePress}
+      <TouchableOpacity
+        style={[styles.navItem, activeTab === "home" && styles.activeNavItem]}
+        onPress={onHomePress || (() => {})}
       >
-        <Text style={[styles.navLabel, activeTab === 'home' && styles.activeNavLabel]}>Home</Text>
+        <Text
+          style={[
+            styles.navLabel,
+            activeTab === "home" && styles.activeNavLabel,
+          ]}
+        >
+          Home
+        </Text>
       </TouchableOpacity>
 
       {/* Upload Button */}
-      <TouchableOpacity style={styles.uploadButton} onPress={onUploadPress}>
+      <TouchableOpacity
+        style={styles.uploadButton}
+        onPress={onUploadPress || (() => {})}
+      >
         <Text style={styles.uploadButtonText}>+</Text>
       </TouchableOpacity>
 
       {/* Gallery Tab */}
-      <TouchableOpacity 
-        style={[styles.navItem, activeTab === 'gallery' && styles.activeNavItem]} 
-        onPress={onGalleryPress}
+      <TouchableOpacity
+        style={[
+          styles.navItem,
+          activeTab === "gallery" && styles.activeNavItem,
+        ]}
+        onPress={onGalleryPress || (() => {})}
       >
-        <Text style={[styles.navLabel, activeTab === 'gallery' && styles.activeNavLabel]}>Gallery</Text>
+        <Text
+          style={[
+            styles.navLabel,
+            activeTab === "gallery" && styles.activeNavLabel,
+          ]}
+        >
+          Gallery
+        </Text>
       </TouchableOpacity>
     </View>
   );

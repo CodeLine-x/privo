@@ -115,8 +115,18 @@ export function PhotoViewerScreen({
   };
 
   const getCurrentImageMetadata = (): ImageData | null => {
+    if (
+      !images ||
+      images.length === 0 ||
+      currentIndex < 0 ||
+      currentIndex >= images.length
+    ) {
+      return null;
+    }
+
+    const currentImagePath = images[currentIndex];
     const metadata = imageMetadata.find(
-      (item) => item.blurredPath === images[currentIndex]
+      (item) => item.blurredPath === currentImagePath
     );
     return metadata || null;
   };
@@ -271,28 +281,44 @@ export function PhotoViewerScreen({
               <Text style={styles.infoTitle}>Image Information</Text>
               {(() => {
                 const metadata = getCurrentImageMetadata();
+                if (!metadata) {
+                  return (
+                    <Text style={styles.infoText}>No metadata available</Text>
+                  );
+                }
+
                 return (
                   <>
-                    <Text style={styles.infoText}>
-                      Faces detected: {metadata?.faceCount || 0}
-                    </Text>
-                    <Text style={styles.infoText}>
-                      Text detected: {metadata?.textCount || 0}
-                    </Text>
-                    <Text style={styles.infoText}>
-                      PII detected: {metadata?.piiCount || 0}
-                    </Text>
-                    {metadata?.detectedTexts &&
-                      metadata.detectedTexts.length > 0 && (
-                        <Text style={styles.infoText}>
-                          Detected text: {metadata.detectedTexts.join(", ")}
-                        </Text>
-                      )}
-                    {metadata?.piiTexts && metadata.piiTexts.length > 0 && (
+                    {/* Show face count only if faces were detected */}
+                    {metadata.faceCount && metadata.faceCount > 0 && (
                       <Text style={styles.infoText}>
-                        PII text: {metadata.piiTexts.join(", ")}
+                        Number of faces detected: {metadata.faceCount}
                       </Text>
                     )}
+                    {/* Show PII data only if PII was detected */}
+                    {metadata.piiTexts &&
+                      Array.isArray(metadata.piiTexts) &&
+                      metadata.piiTexts.length > 0 && (
+                        <>
+                          <Text style={styles.infoText}>
+                            PII data detected:
+                          </Text>
+                          {metadata.piiTexts.map((piiText, index) => (
+                            <Text key={index} style={styles.piiText}>
+                              • {piiText || "Unknown PII"}
+                            </Text>
+                          ))}
+                        </>
+                      )}
+                    {/* Show message if no sensitive content detected */}
+                    {(!metadata.faceCount || metadata.faceCount === 0) &&
+                      (!metadata.piiTexts ||
+                        !Array.isArray(metadata.piiTexts) ||
+                        metadata.piiTexts.length === 0) && (
+                        <Text style={styles.infoText}>
+                          No sensitive content detected
+                        </Text>
+                      )}
                   </>
                 );
               })()}
@@ -302,7 +328,11 @@ export function PhotoViewerScreen({
       )}
 
       {/* Password Modal */}
-      <Modal visible={isPasswordModalVisible} transparent={true} animationType="fade">
+      <Modal
+        visible={isPasswordModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Enter Password</Text>
@@ -341,32 +371,224 @@ export function PhotoViewerScreen({
 const styles = StyleSheet.create({
   // 🔥 keep all your styles here unchanged (except lockButtonIcon removed)
   container: { flex: 1, backgroundColor: "#000000" },
-  scrollView: { flex: 1, height: screenHeight, marginTop: 120, marginBottom: 120 },
-  imagePage: { width: screenWidth, height: "100%", justifyContent: "center", alignItems: "center" },
-  imageContainer: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "#000000" },
+  scrollView: {
+    flex: 1,
+    height: screenHeight,
+    marginTop: 120,
+    marginBottom: 120,
+  },
+  imagePage: {
+    width: screenWidth,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageContainer: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000000",
+  },
   image: { width: "100%", height: "100%" },
-  infoContainer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.7)", zIndex: 3000 },
+  infoContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.7)",
+    zIndex: 3000,
+  },
   infoScrollView: { width: "100%", height: "100%" },
-  infoScrollContent: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
-  infoBox: { backgroundColor: "#FFFFFF", padding: 24, borderRadius: 16, width: "85%", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
-  infoTitle: { fontSize: 22, fontWeight: "700", marginBottom: 16, color: "#2C2C2E", letterSpacing: -0.3 },
-  infoText: { fontSize: 16, color: "#2C2C2E", marginBottom: 8, lineHeight: 22, fontWeight: "500" },
-  headerOverlay: { position: "absolute", top: 0, left: 0, right: 0, height: 120, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingVertical: 16, paddingTop: 54, backgroundColor: "#F7F7F7", borderBottomWidth: 0.5, borderBottomColor: "#E5E5E7", zIndex: 1000 },
-  headerButton: { padding: 12, borderRadius: 12, backgroundColor: "#FFFFFF", minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  infoScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoBox: {
+    backgroundColor: "#FFFFFF",
+    padding: 24,
+    borderRadius: 16,
+    width: "85%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  infoTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#2C2C2E",
+    letterSpacing: -0.3,
+  },
+  infoText: {
+    fontSize: 16,
+    color: "#2C2C2E",
+    marginBottom: 8,
+    lineHeight: 22,
+    fontWeight: "500",
+  },
+  piiText: {
+    fontSize: 14,
+    color: "#2C2C2E",
+    marginBottom: 4,
+    lineHeight: 20,
+    fontWeight: "400",
+    marginLeft: 16,
+  },
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingTop: 54,
+    backgroundColor: "#F7F7F7",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E5E5E7",
+    zIndex: 1000,
+  },
+  headerButton: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerButtonText: { color: "#2C2C2E", fontSize: 18, fontWeight: "600" },
-  imageCounter: { color: "#2C2C2E", fontSize: 16, fontWeight: "600", letterSpacing: 0.2 },
-  footerOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, height: 120, flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingHorizontal: 24, paddingVertical: 16, paddingBottom: 50, backgroundColor: "#F7F7F7", borderTopWidth: 0.5, borderTopColor: "#E5E5E7", zIndex: 1000 },
-  footerButton: { flex: 1, backgroundColor: "#FFFFFF", paddingVertical: 16, paddingHorizontal: 12, marginHorizontal: 6, alignItems: "center", justifyContent: "center", borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  footerButtonText: { color: "#2C2C2E", fontSize: 15, fontWeight: "600", letterSpacing: 0.1 },
-  lockButton: { width: 50, height: 50, borderRadius: 25, backgroundColor: "#F78231", alignItems: "center", justifyContent: "center", marginHorizontal: 6, shadowColor: "#F78231", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-  modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.7)" },
-  modalContent: { backgroundColor: "#FFFFFF", padding: 24, borderRadius: 16, width: "85%", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
-  modalTitle: { fontSize: 24, fontWeight: "700", marginBottom: 24, color: "#2C2C2E", letterSpacing: -0.3 },
-  passwordInput: { width: "100%", height: 52, borderColor: "#E5E5E7", borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 16, marginBottom: 24, fontSize: 16, color: "#2C2C2E", backgroundColor: "#F7F7F7" },
-  modalButtons: { flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 12 },
-  modalButton: { flex: 1, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, alignItems: "center" },
+  imageCounter: {
+    color: "#2C2C2E",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  footerOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 50,
+    backgroundColor: "#F7F7F7",
+    borderTopWidth: 0.5,
+    borderTopColor: "#E5E5E7",
+    zIndex: 1000,
+  },
+  footerButton: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  footerButtonText: {
+    color: "#2C2C2E",
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+  lockButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#F78231",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 6,
+    shadowColor: "#F78231",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    padding: 24,
+    borderRadius: 16,
+    width: "85%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 24,
+    color: "#2C2C2E",
+    letterSpacing: -0.3,
+  },
+  passwordInput: {
+    width: "100%",
+    height: 52,
+    borderColor: "#E5E5E7",
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    fontSize: 16,
+    color: "#2C2C2E",
+    backgroundColor: "#F7F7F7",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: "center",
+  },
   cancelButton: { backgroundColor: "#8E8E93", borderWidth: 0 },
-  cancelButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", letterSpacing: 0.1 },
+  cancelButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
   submitButton: { backgroundColor: "#F78231", borderWidth: 0 },
-  submitButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", letterSpacing: 0.1 },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
 });

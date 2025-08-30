@@ -100,10 +100,16 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
                     return@execute
                 }
                 
-                // Extract PII texts for debugging (these are already filtered by PIIDetector)
-                val piiTextsDebug = allCoordinates
+                // Extract PII texts for storage and debugging (these are already filtered by PIIDetector)
+                val piiTexts = allCoordinates
                     .mapNotNull { it.textContent }
-                    .joinToString(", ")
+                    .distinct()
+                val piiTextsDebug = piiTexts.joinToString(", ")
+                
+                // Count different types of sensitive content
+                val faceCount = allCoordinates.count { it.type == SensitiveContentType.FACE }
+                val textCount = allCoordinates.count { it.type == SensitiveContentType.TEXT }
+                val piiCount = piiTexts.size
                 
                 // Apply blur to all sensitive content
                 val blurredBitmap = blurSensitiveContent(bitmap, allCoordinates)
@@ -118,11 +124,11 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
                                 val result = Arguments.createMap().apply {
                                     putBoolean("success", true)
                                     putString("blurredImagePath", "file://$blurredImagePath")
-                            putInt("sensitiveItemsFound", allCoordinates.size)
-                            putInt("sensitiveItemsBlurred", allCoordinates.size)
-                            putString("message", "Successfully blurred ${allCoordinates.size} sensitive item(s)")
+                                    putInt("sensitiveItemsFound", allCoordinates.size)
+                                    putInt("sensitiveItemsBlurred", allCoordinates.size)
+                                    putString("message", "Successfully blurred ${allCoordinates.size} sensitive item(s)")
                                     putArray("coordinates", Arguments.createArray().apply {
-                                allCoordinates.forEach { coordinate ->
+                                        allCoordinates.forEach { coordinate ->
                                             pushMap(Arguments.createMap().apply {
                                                 putDouble("x", coordinate.x)
                                                 putDouble("y", coordinate.y)
@@ -133,7 +139,16 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
                                             })
                                         }
                                     })
-                            putString("debugDetectedTexts", piiTextsDebug)
+                                    putString("debugDetectedTexts", piiTextsDebug)
+                                    // Add PII information for storage
+                                    putInt("faceCount", faceCount)
+                                    putInt("textCount", textCount)
+                                    putInt("piiCount", piiCount)
+                                    putArray("piiTexts", Arguments.createArray().apply {
+                                        piiTexts.forEach { text ->
+                                            pushString(text)
+                                        }
+                                    })
                                 }
                                 promise.resolve(result)
                             } else {
