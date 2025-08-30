@@ -44,9 +44,9 @@ class PIIDetector {
         // Ensure model is downloaded
         extractor.downloadModelIfNeeded { error in
             if let error = error {
-                print("❌ ML Kit model download failed: \(error)")
+                print("ML Kit model download failed: \(error)")
             } else {
-                print("✅ ML Kit model ready for entity extraction")
+                print("ML Kit model ready for entity extraction")
             }
         }
         
@@ -167,15 +167,15 @@ class PIIDetector {
     private static func findMLKitEntityRanges(in text: String) -> [PIIMatch] {
         var matches: [PIIMatch] = []
         
-        print("🔍 ML Kit: Analyzing text: '\(text)'")
+        print("ML Kit: Analyzing text: '\(text)'")
         
         // Check if ML Kit is available (will be nil until pod is installed)
         guard let extractor = entityExtractor else {
-            print("❌ ML Kit Entity Extractor not available - using fallback methods")
+            print("ML Kit Entity Extractor not available - using fallback methods")
             return matches
         }
         
-        print("✅ ML Kit Entity Extractor available")
+        print("ML Kit Entity Extractor available")
         
         // Create dispatch group for async operation
         let group = DispatchGroup()
@@ -186,22 +186,22 @@ class PIIDetector {
             defer { group.leave() }
             
             if let error = error {
-                print("❌ ML Kit entity detection error: \(error)")
+                print("ML Kit entity detection error: \(error)")
                 return
             }
             
             guard let annotations = result else { 
-                print("⚠️ ML Kit returned no annotations")
+                print("ML Kit returned no annotations")
                 return 
             }
             
-            print("📊 ML Kit found \(annotations.count) annotations")
+            print("ML Kit found \(annotations.count) annotations")
             
             for annotation in annotations {
-                print("📍 Annotation range: \(annotation.range), entities: \(annotation.entities.count)")
+                print("Annotation range: \(annotation.range), entities: \(annotation.entities.count)")
                 
                 for entity in annotation.entities {
-                    print("🏷️ Entity type: \(entity.entityType)")
+                    print("Entity type: \(entity.entityType)")
                     
                     // Map ML Kit entity types to our PII types
                     let piiType = mapMLKitEntityType(entity.entityType)
@@ -210,7 +210,7 @@ class PIIDetector {
                                           length: Int(annotation.range.length))
                         let matchedText = (text as NSString).substring(with: range)
                         
-                        print("✅ ML Kit detected PII: '\(matchedText)' as \(piiType)")
+                        print("ML Kit detected PII: '\(matchedText)' as \(piiType)")
                         
                         matches.append(PIIMatch(
                             range: range,
@@ -218,18 +218,18 @@ class PIIDetector {
                             matchedText: matchedText
                         ))
                     } else {
-                        print("⚠️ ML Kit entity type \(entity.entityType) not mapped to PII")
+                        print("ML Kit entity type \(entity.entityType) not mapped to PII")
                     }
                 }
             }
             
-            print("🎯 ML Kit final matches: \(matches.count)")
+            print("ML Kit final matches: \(matches.count)")
         }
         
         // Wait for async operation to complete (with timeout)
         let waitResult = group.wait(timeout: .now() + 3.0)
         if waitResult == .timedOut {
-            print("⏱️ ML Kit detection timed out")
+            print("ML Kit detection timed out")
         }
         
         return matches
@@ -368,7 +368,7 @@ class PIIDetector {
     
     // MARK: - ML Kit Test Function
     static func testMLKit() {
-        print("🧪 Testing ML Kit with sample data...")
+        print("Testing ML Kit with sample data...")
         let testTexts = [
             "Call me at (555) 123-4567",
             "Email me at test@example.com", 
@@ -377,7 +377,7 @@ class PIIDetector {
         ]
         
         for testText in testTexts {
-            print("\n🧪 Testing: '\(testText)'")
+            print("\nTesting: '\(testText)'")
             let matches = findMLKitEntityRanges(in: testText)
             print("Result: \(matches.count) matches found")
             for match in matches {

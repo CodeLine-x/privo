@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StorageManager, ImageData } from "../utils/StorageManager";
+import { Config } from "../utils/config";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -62,7 +63,7 @@ export function PhotoViewerScreen({
   };
 
   const handlePasswordSubmit = () => {
-    if (password === "1234") {
+    if (password === Config.DEMO_PASSWORD) {
       setUnlockedImages((prev) => new Set([...prev, currentIndex]));
       setAuthenticatedImages((prev) => new Set([...prev, currentIndex]));
       setIsPasswordModalVisible(false);

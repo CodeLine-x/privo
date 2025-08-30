@@ -34,16 +34,13 @@ export function ImageGrid({
   };
 
   const handleImagePress = (imageUri: string, index: number) => {
-    // Always open PhotoViewer, let it handle password logic
     onImagePress(imageUri, index);
   };
 
   const getImageToDisplay = (imageUri: string): string => {
-    // Show blurred version if available, otherwise show original
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    // Only use blurredPath if it exists and is different from original
     return metadata?.blurredPath || imageUri;
   };
 
@@ -51,12 +48,8 @@ export function ImageGrid({
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    // Only show "Private" tag if sensitive content was actually detected
-    // The blurredPath will only be set if sensitive content was found
     return !!metadata?.blurredPath;
   };
-
-  // Sort images by upload date (newest first) and create 3-column grid
   const getSortedImagesWithMetadata = () => {
     return images
       .map((imageUri) => {
@@ -79,7 +72,6 @@ export function ImageGrid({
     const sortedImages = getSortedImagesWithMetadata();
     const rows = [];
 
-    // Create rows of 3 images each
     for (let i = 0; i < sortedImages.length; i += 3) {
       const row = sortedImages.slice(i, i + 3);
       rows.push(row);

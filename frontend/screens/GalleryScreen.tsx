@@ -41,16 +41,12 @@ export function GalleryScreen() {
     setImageMetadata(metadata);
   };
 
-  // Get the image to display (blurred version if available, otherwise original)
   const getImageToDisplay = (imageUri: string): string => {
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    // Only use blurredPath if it exists and is different from original
     return metadata?.blurredPath || imageUri;
   };
-
-  // Get all images to display in PhotoViewer (blurred versions)
   const getPhotoViewerImages = (): string[] => {
     return selectedImages.map((imageUri) => getImageToDisplay(imageUri));
   };
@@ -65,25 +61,19 @@ export function GalleryScreen() {
     try {
       const result = await NativeBridge.scanAndBlurSensitiveContent(imagePath);
 
-      // Always store metadata, whether sensitive content was found or not
       const detectedTextsArray: string[] = [];
       const piiTexts: string[] = [];
 
-      // Extract PII texts from the new array format
       if (result.piiTexts && Array.isArray(result.piiTexts)) {
         piiTexts.push(...result.piiTexts);
       }
 
-      // Extract detected texts from debugDetectedTexts (fallback)
       if (result.debugDetectedTexts) {
         const texts = result.debugDetectedTexts
           .split(", ")
           .filter((text) => text.trim());
         detectedTextsArray.push(...texts);
       }
-
-      // Store metadata with detection results
-      // Only store blurredPath if sensitive content was detected and a different path was returned
       const hasSensitiveContent = result.sensitiveItemsFound > 0;
       const blurredPath = hasSensitiveContent && result.blurredImagePath !== imagePath 
         ? result.blurredImagePath 
@@ -135,7 +125,6 @@ export function GalleryScreen() {
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
 
-        // Process each image for sensitive content detection and blur
         let totalSensitiveItems = 0;
         let processedCount = 0;
         let allDetectedTexts: string[] = [];
@@ -149,10 +138,8 @@ export function GalleryScreen() {
           }
         }
 
-        // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
 
-        // Show meaningful feedback with detected text debug info
         if (totalSensitiveItems > 0) {
           let message = `Found ${totalSensitiveItems} face(s) in ${processedCount} image. Faces have been blurred for privacy.`;
 
@@ -180,7 +167,6 @@ export function GalleryScreen() {
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
 
-        // Process each image for sensitive content detection and blur
         let totalSensitiveItems = 0;
         let processedCount = 0;
         let allDetectedTexts: string[] = [];
@@ -194,10 +180,8 @@ export function GalleryScreen() {
           }
         }
 
-        // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
 
-        // Show meaningful feedback with detected text debug info
         if (totalSensitiveItems > 0) {
           let message = `Selected ${validImages.length} image(s). Found ${totalSensitiveItems} face(s) in ${processedCount} image(s). Faces have been blurred for privacy.`;
 
@@ -249,13 +233,9 @@ export function GalleryScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              console.log("=== Clearing all images and files ===");
-
-              // Clear the images from storage
               setSelectedImages([]);
               await storageManager.saveImages([]);
 
-              // Clear all image files from cache and document directories
               const cacheDir = FileSystem.cacheDirectory;
               const documentDir = FileSystem.documentDirectory;
 
@@ -263,7 +243,6 @@ export function GalleryScreen() {
                 throw new Error("Cache or document directory not available");
               }
 
-              // List all files in cache directory
               const cacheFiles = await FileSystem.readDirectoryAsync(cacheDir);
 
               // List all files in document directory
@@ -273,41 +252,28 @@ export function GalleryScreen() {
 
               let deletedCount = 0;
 
-              // Delete cache image files
               for (const fileName of cacheFiles) {
                 if (fileName.match(/\.(jpg|jpeg|png|webp)$/i)) {
                   const filePath = `${cacheDir}${fileName}`;
                   try {
                     await FileSystem.deleteAsync(filePath);
-                    console.log(`Deleted cache file: ${fileName}`);
                     deletedCount++;
                   } catch (error) {
-                    console.error(
-                      `Failed to delete cache file ${fileName}:`,
-                      error
-                    );
                   }
                 }
               }
 
-              // Delete document image files
               for (const fileName of documentFiles) {
                 if (fileName.match(/\.(jpg|jpeg|png|webp)$/i)) {
                   const filePath = `${documentDir}${fileName}`;
                   try {
                     await FileSystem.deleteAsync(filePath);
-                    console.log(`Deleted document file: ${fileName}`);
                     deletedCount++;
                   } catch (error) {
-                    console.error(
-                      `Failed to delete document file ${fileName}:`,
-                      error
-                    );
                   }
                 }
               }
 
-              console.log(`Cleared ${deletedCount} image files`);
 
               Alert.alert(
                 "Cleared Successfully",

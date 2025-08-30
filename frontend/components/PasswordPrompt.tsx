@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import { Config } from "../utils/config";
 
 interface PasswordPromptProps {
   visible: boolean;
@@ -21,10 +22,9 @@ export function PasswordPrompt({
   onSuccess,
 }: PasswordPromptProps) {
   const [password, setPassword] = useState("");
-  const CORRECT_PASSWORD = "1234";
 
   const handleSubmit = () => {
-    if (password === CORRECT_PASSWORD) {
+    if (password === Config.DEMO_PASSWORD) {
       setPassword("");
       onSuccess();
     } else {

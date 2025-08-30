@@ -2,29 +2,6 @@ import { NativeModules, Platform, Alert } from "react-native";
 
 const { SensitiveScan } = NativeModules;
 
-console.log("=== NativeBridge Initialization ===");
-console.log("Platform:", Platform.OS);
-console.log("NativeModules:", NativeModules);
-console.log("Available modules:", Object.keys(NativeModules));
-console.log("Total modules count:", Object.keys(NativeModules).length);
-
-// Log all available modules with their details
-Object.keys(NativeModules).forEach((moduleName) => {
-  const module = NativeModules[moduleName];
-  console.log(`Module: ${moduleName}`);
-  console.log(`  - Type: ${typeof module}`);
-  console.log(
-    `  - Methods: ${
-      module && typeof module === "object" ? Object.keys(module) : "N/A"
-    }`
-  );
-});
-
-console.log("SensitiveScan module:", SensitiveScan);
-console.log("SensitiveScan type:", typeof SensitiveScan);
-if (SensitiveScan) {
-  console.log("SensitiveScan methods:", Object.keys(SensitiveScan));
-}
 
 export interface SensitiveCoordinate {
   x: number;
@@ -54,13 +31,7 @@ export class NativeBridge {
   static async scanAndBlurSensitiveContent(
     imagePath: string
   ): Promise<SensitiveScanResult> {
-    console.log("=== scanAndBlurSensitiveContent called ===");
-    console.log("Platform:", Platform.OS);
-    console.log("Image path:", imagePath);
-    console.log("SensitiveScan available:", !!SensitiveScan);
-
     if (Platform.OS !== "ios" && Platform.OS !== "android") {
-      console.log("Platform not supported:", Platform.OS);
       return {
         success: false,
         blurredImagePath: imagePath,
@@ -71,14 +42,11 @@ export class NativeBridge {
     }
 
     if (!SensitiveScan) {
-      console.error("SensitiveScan module not available!");
       throw new Error("SensitiveScan module not available");
     }
 
     try {
-      console.log("Calling SensitiveScan.scanAndBlurSensitiveContent...");
       const result = await SensitiveScan.scanAndBlurSensitiveContent(imagePath);
-      console.log("Scan result:", result);
       return result;
     } catch (error) {
       console.error("Error scanning and blurring sensitive content:", error);
@@ -101,7 +69,6 @@ export class NativeBridge {
         onBlurComplete(result.blurredImagePath);
       }
     } catch (error) {
-      console.error("Error scanning and blurring sensitive content:", error);
       Alert.alert(
         "Scan Error",
         "Failed to scan and blur sensitive content. Please try again.",
@@ -128,7 +95,6 @@ export class NativeBridge {
         );
       }
     } catch (error) {
-      console.error("Error scanning image:", error);
       Alert.alert(
         "Scan Error",
         "Unable to scan image for sensitive content. Please try again.",

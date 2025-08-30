@@ -82,13 +82,11 @@ export class StorageManager {
         const data = await FileSystem.readAsStringAsync(fileUri);
         const metadata = JSON.parse(data) as ImageData[];
         
-        // Migration: Clear old thumbnail paths that point to non-existent files
         const migratedMetadata = metadata.map(item => ({
           ...item,
-          thumbnailPath: undefined // Clear thumbnail path to force fallback to blurredPath
+          thumbnailPath: undefined
         }));
         
-        // Save the migrated metadata if any changes were made
         if (migratedMetadata.some((item, index) => item.thumbnailPath !== metadata[index].thumbnailPath)) {
           await this.saveImageMetadata(migratedMetadata);
         }
@@ -138,19 +136,13 @@ export class StorageManager {
     try {
       const metadata = await this.loadImageMetadata();
 
-      // Both iOS and Android now only create blurred images, not separate thumbnails
-      // The blurred image can be used directly for display
       let thumbnailPath: string | undefined;
-      // For both platforms, thumbnailPath stays undefined so fallback logic uses blurredPath
-
-      // Check if metadata exists for this image, if not create it
       let updatedMetadata;
       const existingIndex = metadata.findIndex(
         (item) => item.originalPath === originalPath
       );
 
       if (existingIndex >= 0) {
-        // Update existing metadata
         updatedMetadata = metadata.map((item) =>
           item.originalPath === originalPath
             ? {
@@ -166,7 +158,6 @@ export class StorageManager {
             : item
         );
       } else {
-        // Create new metadata entry
         const newMetadata: ImageData = {
           originalPath,
           blurredPath: blurredPath && blurredPath !== originalPath ? blurredPath : undefined,
@@ -218,7 +209,6 @@ export class StorageManager {
   async clearAllMetadata(): Promise<void> {
     try {
       await this.saveImageMetadata([]);
-      console.log("All image metadata cleared successfully");
     } catch (error) {
       console.error("Error clearing all metadata:", error);
     }

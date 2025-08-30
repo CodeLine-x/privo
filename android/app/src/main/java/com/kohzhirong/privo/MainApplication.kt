@@ -22,7 +22,7 @@ class MainApplication : Application(), ReactApplication {
         this,
         object : DefaultReactNativeHost(this) {
           override fun getPackages(): List<ReactPackage> {
-            android.util.Log.d("MainApplication", "=== getPackages called ===")
+            android.util.Log.d("MainApplication", "getPackages called")
             val packages = PackageList(this).packages.toMutableList()
             android.util.Log.d("MainApplication", "Initial packages count: ${packages.size}")
             
