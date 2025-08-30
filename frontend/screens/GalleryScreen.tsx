@@ -14,16 +14,15 @@ import { ImageViewer } from "../components/ImageViewer";
 import { UploadButton } from "../components/UploadButton";
 import { ClearButton } from "../components/ClearButton";
 import { ImageGrid } from "../components/ImageGrid";
-import { FileSystemViewer } from "../components/FileSystemViewer";
 import { ImageHandler } from "../utils/ImageHandler";
 import { StorageManager } from "../utils/StorageManager";
 import { NativeBridge } from "../utils/NativeBridge";
+import * as FileSystem from "expo-file-system";
 
 export function GalleryScreen() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
-  const [fileSystemRefreshKey, setFileSystemRefreshKey] = useState(0);
 
   const imageHandler = new ImageHandler();
   const storageManager = new StorageManager();
@@ -110,9 +109,6 @@ export function GalleryScreen() {
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
 
-        // Refresh file system viewer
-        setFileSystemRefreshKey((prev) => prev + 1);
-
         // Show meaningful feedback with detected text debug info
         if (totalSensitiveItems > 0) {
           let message = `Found ${totalSensitiveItems} face(s) in ${processedCount} image. Faces have been blurred for privacy.`;
@@ -158,9 +154,6 @@ export function GalleryScreen() {
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
 
-        // Refresh file system viewer
-        setFileSystemRefreshKey((prev) => prev + 1);
-
         // Show meaningful feedback with detected text debug info
         if (totalSensitiveItems > 0) {
           let message = `Selected ${validImages.length} image(s). Found ${totalSensitiveItems} face(s) in ${processedCount} image(s). Faces have been blurred for privacy.`;
@@ -202,7 +195,7 @@ export function GalleryScreen() {
   const clearAllImages = async () => {
     Alert.alert(
       "Clear All Images",
-      "Are you sure you want to remove all uploaded images?",
+      "Are you sure you want to remove all uploaded images and files?",
       [
         {
           text: "Cancel",
@@ -212,8 +205,74 @@ export function GalleryScreen() {
           text: "Clear All",
           style: "destructive",
           onPress: async () => {
-            setSelectedImages([]);
-            await storageManager.saveImages([]);
+            try {
+              console.log("=== Clearing all images and files ===");
+
+              // Clear the images from storage
+              setSelectedImages([]);
+              await storageManager.saveImages([]);
+
+              // Clear all image files from cache and document directories
+              const cacheDir = FileSystem.cacheDirectory;
+              const documentDir = FileSystem.documentDirectory;
+
+              // List all files in cache directory
+              const cacheFiles = await FileSystem.readDirectoryAsync(cacheDir);
+
+              // List all files in document directory
+              const documentFiles = await FileSystem.readDirectoryAsync(
+                documentDir
+              );
+
+              let deletedCount = 0;
+
+              // Delete cache image files
+              for (const fileName of cacheFiles) {
+                if (fileName.match(/\.(jpg|jpeg|png|webp)$/i)) {
+                  const filePath = `${cacheDir}${fileName}`;
+                  try {
+                    await FileSystem.deleteAsync(filePath);
+                    console.log(`Deleted cache file: ${fileName}`);
+                    deletedCount++;
+                  } catch (error) {
+                    console.error(
+                      `Failed to delete cache file ${fileName}:`,
+                      error
+                    );
+                  }
+                }
+              }
+
+              // Delete document image files
+              for (const fileName of documentFiles) {
+                if (fileName.match(/\.(jpg|jpeg|png|webp)$/i)) {
+                  const filePath = `${documentDir}${fileName}`;
+                  try {
+                    await FileSystem.deleteAsync(filePath);
+                    console.log(`Deleted document file: ${fileName}`);
+                    deletedCount++;
+                  } catch (error) {
+                    console.error(
+                      `Failed to delete document file ${fileName}:`,
+                      error
+                    );
+                  }
+                }
+              }
+
+              console.log(`Cleared ${deletedCount} image files`);
+
+              Alert.alert(
+                "Cleared Successfully",
+                `Removed all images and deleted ${deletedCount} files.`
+              );
+            } catch (error) {
+              console.error("Error clearing images and files:", error);
+              Alert.alert(
+                "Error",
+                "Failed to clear some files. Please try again."
+              );
+            }
           },
         },
       ]
@@ -263,8 +322,6 @@ export function GalleryScreen() {
           )}
         </View>
       </View>
-
-      <FileSystemViewer key={fileSystemRefreshKey} />
 
       <ScrollView
         style={styles.scrollView}

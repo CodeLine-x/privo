@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { StorageManager, ImageData } from "../utils/StorageManager";
+import { PasswordPrompt } from "./PasswordPrompt";
 
 interface ImageGridProps {
   images: string[];
@@ -22,6 +23,8 @@ export function ImageGrid({
   onImageLongPress,
 }: ImageGridProps) {
   const [imageMetadata, setImageMetadata] = useState<ImageData[]>([]);
+  const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
   const storageManager = new StorageManager();
 
   useEffect(() => {
@@ -34,8 +37,27 @@ export function ImageGrid({
   };
 
   const handleImagePress = (imageUri: string) => {
-    // Simply open the image in full screen - no manual scanning needed
-    onImagePress(imageUri);
+    // Check if this image has a blurred version (needs password)
+    if (hasBlurredVersion(imageUri)) {
+      setPendingImageUri(imageUri);
+      setPasswordPromptVisible(true);
+    } else {
+      // No blurred version, open directly
+      onImagePress(imageUri);
+    }
+  };
+
+  const handlePasswordSuccess = () => {
+    setPasswordPromptVisible(false);
+    if (pendingImageUri) {
+      onImagePress(pendingImageUri);
+      setPendingImageUri(null);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setPasswordPromptVisible(false);
+    setPendingImageUri(null);
   };
 
   const getImageToDisplay = (imageUri: string): string => {
@@ -102,11 +124,11 @@ export function ImageGrid({
                   console.error("Image loading error:", error);
                 }}
               />
-                             <View style={styles.imageOverlay}>
-                 <Text style={styles.imageText}>
-                   {hasBlurredVersion(imageData.uri) ? "🔒" : "📷"}
-                 </Text>
-               </View>
+              <View style={styles.imageOverlay}>
+                <Text style={styles.imageText}>
+                  {hasBlurredVersion(imageData.uri) ? "🔒" : "📷"}
+                </Text>
+              </View>
             </View>
           </TouchableWithoutFeedback>
         ))}
@@ -131,6 +153,12 @@ export function ImageGrid({
       >
         {renderImageGrid()}
       </ScrollView>
+
+      <PasswordPrompt
+        visible={passwordPromptVisible}
+        onClose={handlePasswordCancel}
+        onSuccess={handlePasswordSuccess}
+      />
     </View>
   );
 }
