@@ -9,11 +9,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { StorageManager, ImageData } from "../utils/StorageManager";
-import { PasswordPrompt } from "./PasswordPrompt";
 
 interface ImageGridProps {
   images: string[];
-  onImagePress: (uri: string) => void;
+  onImagePress: (uri: string, index: number) => void;
   onImageLongPress: (index: number) => void;
 }
 
@@ -23,8 +22,6 @@ export function ImageGrid({
   onImageLongPress,
 }: ImageGridProps) {
   const [imageMetadata, setImageMetadata] = useState<ImageData[]>([]);
-  const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
-  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
   const storageManager = new StorageManager();
 
   useEffect(() => {
@@ -36,36 +33,17 @@ export function ImageGrid({
     setImageMetadata(metadata);
   };
 
-  const handleImagePress = (imageUri: string) => {
-    // Check if this image has a blurred version (needs password)
-    if (hasBlurredVersion(imageUri)) {
-      setPendingImageUri(imageUri);
-      setPasswordPromptVisible(true);
-    } else {
-      // No blurred version, open directly
-      onImagePress(imageUri);
-    }
-  };
-
-  const handlePasswordSuccess = () => {
-    setPasswordPromptVisible(false);
-    if (pendingImageUri) {
-      onImagePress(pendingImageUri);
-      setPendingImageUri(null);
-    }
-  };
-
-  const handlePasswordCancel = () => {
-    setPasswordPromptVisible(false);
-    setPendingImageUri(null);
+  const handleImagePress = (imageUri: string, index: number) => {
+    // Always open PhotoViewer, let it handle password logic
+    onImagePress(imageUri, index);
   };
 
   const getImageToDisplay = (imageUri: string): string => {
-    // Always show blurred version as thumbnail if available, otherwise show original
+    // Show thumbnail if available, otherwise show blurred version, otherwise show original
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    return metadata?.blurredPath || imageUri;
+    return metadata?.thumbnailPath || metadata?.blurredPath || imageUri;
   };
 
   const hasBlurredVersion = (imageUri: string): boolean => {
@@ -109,7 +87,10 @@ export function ImageGrid({
         {row.map((imageData, colIndex) => (
           <TouchableWithoutFeedback
             key={`image-${rowIndex}-${colIndex}`}
-            onPress={() => handleImagePress(imageData.uri)}
+            onPress={() => {
+              const originalIndex = images.indexOf(imageData.uri);
+              handleImagePress(imageData.uri, originalIndex);
+            }}
             onLongPress={() => {
               const originalIndex = images.indexOf(imageData.uri);
               onImageLongPress(originalIndex);
@@ -153,12 +134,6 @@ export function ImageGrid({
       >
         {renderImageGrid()}
       </ScrollView>
-
-      <PasswordPrompt
-        visible={passwordPromptVisible}
-        onClose={handlePasswordCancel}
-        onSuccess={handlePasswordSuccess}
-      />
     </View>
   );
 }

@@ -10,20 +10,22 @@ import {
   Modal,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { ImageViewer } from "../components/ImageViewer";
+import { PhotoViewerScreen } from "./PhotoViewerScreen";
 import { UploadButton } from "../components/UploadButton";
 import { ClearButton } from "../components/ClearButton";
 import { ImageGrid } from "../components/ImageGrid";
 import { ImageHandler } from "../utils/ImageHandler";
-import { StorageManager } from "../utils/StorageManager";
+import { StorageManager, ImageData } from "../utils/StorageManager";
 import { NativeBridge } from "../utils/NativeBridge";
 import * as FileSystem from "expo-file-system";
 
 export function GalleryScreen() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
-  const [showClearImage, setShowClearImage] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<"gallery" | "photoViewer">(
+    "gallery"
+  );
+  const [photoViewerInitialIndex, setPhotoViewerInitialIndex] = useState(0);
+  const [imageMetadata, setImageMetadata] = useState<ImageData[]>([]);
 
   const imageHandler = new ImageHandler();
   const storageManager = new StorageManager();
@@ -34,7 +36,22 @@ export function GalleryScreen() {
 
   const loadImagesFromStorage = async () => {
     const images = await storageManager.loadImages();
+    const metadata = await storageManager.loadImageMetadata();
     setSelectedImages(images);
+    setImageMetadata(metadata);
+  };
+
+  // Get the image to display (blurred version if available, otherwise original)
+  const getImageToDisplay = (imageUri: string): string => {
+    const metadata = imageMetadata.find(
+      (item) => item.originalPath === imageUri
+    );
+    return metadata?.blurredPath || imageUri;
+  };
+
+  // Get all images to display in PhotoViewer (blurred versions)
+  const getPhotoViewerImages = (): string[] => {
+    return selectedImages.map((imageUri) => getImageToDisplay(imageUri));
   };
 
   const processImageForSensitiveContent = async (
@@ -257,6 +274,10 @@ export function GalleryScreen() {
               const cacheDir = FileSystem.cacheDirectory;
               const documentDir = FileSystem.documentDirectory;
 
+              if (!cacheDir || !documentDir) {
+                throw new Error("Cache or document directory not available");
+              }
+
               // List all files in cache directory
               const cacheFiles = await FileSystem.readDirectoryAsync(cacheDir);
 
@@ -320,13 +341,12 @@ export function GalleryScreen() {
     );
   };
 
-  const openImageModal = async (imageUri: string) => {
+  const openPhotoViewer = async (imageUri: string, index: number) => {
     try {
       const processedUri = await imageHandler.handleImageUri(imageUri);
       if (processedUri && imageHandler.isValidImageUri(processedUri)) {
-        setSelectedImage(processedUri);
-        setShowClearImage(true); // Show clear image when modal opens
-        setIsImageModalVisible(true);
+        setPhotoViewerInitialIndex(index);
+        setCurrentScreen("photoViewer");
       } else {
         Alert.alert(
           "Error",
@@ -334,16 +354,24 @@ export function GalleryScreen() {
         );
       }
     } catch (error) {
-      console.error("Error opening image modal:", error);
+      console.error("Error opening photo viewer:", error);
       Alert.alert("Error", "Unable to display this image. Please try again.");
     }
   };
 
-  const closeImageModal = () => {
-    setIsImageModalVisible(false);
-    setSelectedImage(null);
-    setShowClearImage(false);
+  const closePhotoViewer = () => {
+    setCurrentScreen("gallery");
   };
+
+  if (currentScreen === "photoViewer") {
+    return (
+      <PhotoViewerScreen
+        images={getPhotoViewerImages()}
+        initialIndex={photoViewerInitialIndex}
+        onBack={closePhotoViewer}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -373,7 +401,7 @@ export function GalleryScreen() {
         {selectedImages.length > 0 ? (
           <ImageGrid
             images={selectedImages}
-            onImagePress={openImageModal}
+            onImagePress={openPhotoViewer}
             onImageLongPress={removeImage}
           />
         ) : (
@@ -385,26 +413,6 @@ export function GalleryScreen() {
           </View>
         )}
       </ScrollView>
-
-      <Modal
-        visible={isImageModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeImageModal}
-      >
-        <TouchableWithoutFeedback onPress={closeImageModal}>
-          <View style={styles.modalOverlay}>
-            {selectedImage && (
-              <ImageViewer
-                uri={selectedImage}
-                style={styles.fullScreenImage}
-                onError={closeImageModal}
-                showClearImage={showClearImage}
-              />
-            )}
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </View>
   );
 }
@@ -460,15 +468,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#adb5bd",
     textAlign: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fullScreenImage: {
-    width: "100%",
-    height: "100%",
   },
 });
