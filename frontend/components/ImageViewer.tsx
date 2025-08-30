@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Image, ImageStyle, StyleProp, View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { Image, ImageStyle, StyleProp, View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { StorageManager, ImageData } from "../utils/StorageManager";
 
 interface ImageViewerProps {
@@ -10,7 +10,7 @@ interface ImageViewerProps {
 
 export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
   const [imageMetadata, setImageMetadata] = useState<ImageData | undefined>();
-  const [showOriginal, setShowOriginal] = useState(false); // Start with blurred by default
+  const [showBlurred, setShowBlurred] = useState(false);
   const storageManager = new StorageManager();
 
   useEffect(() => {
@@ -23,18 +23,19 @@ export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
   };
 
   const getImageToDisplay = (): string => {
-    if (!showOriginal && imageMetadata?.blurredPath) {
-      return imageMetadata.blurredPath; // Show blurred
+    // Toggle between original and blurred version
+    if (showBlurred && imageMetadata?.blurredPath) {
+      return imageMetadata.blurredPath;
     }
-    return uri; // Show original (fallback or when showOriginal is true)
+    return uri; // Show original by default
   };
 
   const hasBlurredVersion = (): boolean => {
     return !!imageMetadata?.blurredPath;
   };
 
-  const toggleVersion = () => {
-    setShowOriginal(!showOriginal);
+  const toggleBlurView = () => {
+    setShowBlurred(!showBlurred);
   };
 
   return (
@@ -48,16 +49,15 @@ export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
           onError?.();
         }}
       />
+      
+      {/* Toggle button - only show if there's a blurred version */}
       {hasBlurredVersion() && (
-        <TouchableOpacity
-          style={styles.toggleButton}
-          onPress={toggleVersion}
+        <TouchableOpacity 
+          style={styles.toggleButton} 
+          onPress={toggleBlurView}
         >
-          <Text style={styles.toggleButtonText}>
-            {showOriginal ? "🔒" : "👁️"}
-          </Text>
-          <Text style={styles.toggleLabel}>
-            {showOriginal ? "Hide" : "Show"}
+          <Text style={styles.toggleText}>
+            {showBlurred ? "👁️ Show Original" : "🔒 Show Blurred"}
           </Text>
         </TouchableOpacity>
       )}
@@ -78,25 +78,17 @@ const styles = StyleSheet.create({
   },
   toggleButton: {
     position: "absolute",
-    top: 60,
+    top: 50,
     right: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 80,
-    zIndex: 1000,
+    paddingVertical: 10,
+    borderRadius: 20,
+    zIndex: 1,
   },
-  toggleButtonText: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  toggleLabel: {
+  toggleText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
-    textAlign: "center",
   },
 });

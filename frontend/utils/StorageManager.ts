@@ -4,6 +4,7 @@ import * as FileSystem from "expo-file-system";
 export interface ImageData {
   originalPath: string;
   blurredPath?: string;
+  thumbnailPath?: string;
   hasFaces: boolean;
   uploadedAt: number;
 }
@@ -113,14 +114,14 @@ export class StorageManager {
       const existingIndex = metadata.findIndex(item => item.originalPath === originalPath);
       
       if (existingIndex >= 0) {
-        // Update existing metadata
+        // Update existing metadata - no thumbnail needed
         updatedMetadata = metadata.map(item => 
           item.originalPath === originalPath 
             ? { ...item, blurredPath } 
             : item
         );
       } else {
-        // Create new metadata entry
+        // Create new metadata entry - no thumbnail needed
         const newMetadata: ImageData = {
           originalPath,
           blurredPath,

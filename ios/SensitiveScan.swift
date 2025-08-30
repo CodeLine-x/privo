@@ -1,5 +1,4 @@
 import Foundation
-import Vision
 import UIKit
 import React
 import CoreImage
@@ -14,85 +13,7 @@ class SensitiveScan: NSObject {
   }
   
   @objc
-  func detectFaces(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
-    // Handle React Native file URIs by removing file:// prefix if present
-    let processedPath = imagePath.replacingOccurrences(of: "file://", with: "")
-    
-    // Try loading with contentsOfFile first, then fall back to Data loading for WebP support
-    var image: UIImage?
-    
-    if let img = UIImage(contentsOfFile: processedPath) {
-      image = img
-    } else if let data = NSData(contentsOfFile: processedPath), let img = UIImage(data: data as Data) {
-      image = img
-    }
-    
-    guard let finalImage = image else {
-      rejecter("IMAGE_LOAD_ERROR", "Failed to load image", nil)
-      return
-    }
-    
-    guard let cgImage = finalImage.cgImage else {
-      rejecter("IMAGE_CONVERSION_ERROR", "Failed to convert image", nil)
-      return
-    }
-    
-    // Run face detection on a background queue
-    DispatchQueue.global(qos: .userInitiated).async {
-      self.detectFacesWithCoordinates(in: cgImage, imageSize: finalImage.size) { faceData in
-        DispatchQueue.main.async {
-          let hasFaces = faceData.count > 0
-          resolver([
-            "hasFaces": hasFaces,
-            "faceCount": faceData.count,
-            "message": hasFaces ? "Sensitive content detected!" : "No sensitive content found",
-            "faces": faceData
-          ])
-        }
-      }
-    }
-  }
-  
-  private func detectFacesWithCoordinates(in image: CGImage, imageSize: CGSize, completion: @escaping ([[String: Any]]) -> Void) {
-    let request = VNDetectFaceRectanglesRequest()
-    let handler = VNImageRequestHandler(cgImage: image, options: [:])
-    
-    do {
-      try handler.perform([request])
-      
-      if let observations = request.results as? [VNFaceObservation] {
-        let faceData = observations.map { observation -> [String: Any] in
-          // Vision framework uses normalized coordinates (0-1) with origin at bottom-left
-          // UIImage uses pixel coordinates with origin at top-left
-          let boundingBox = observation.boundingBox
-          
-          // Convert to pixel coordinates
-          let pixelX = boundingBox.origin.x * imageSize.width
-          let pixelWidth = boundingBox.size.width * imageSize.width
-          let pixelHeight = boundingBox.size.height * imageSize.height
-          
-          // Flip Y coordinate from bottom-left to top-left origin
-          let pixelY = imageSize.height - (boundingBox.origin.y * imageSize.height + pixelHeight)
-          
-          return [
-            "x": pixelX,
-            "y": pixelY,
-            "width": pixelWidth,
-            "height": pixelHeight,
-            "confidence": observation.confidence
-          ]
-        }
-        completion(faceData)
-      } else {
-        completion([])
-      }
-    } catch {
-      completion([])
-    }
-  }
-  
-  @objc
-  func blurFacesInImage(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+  func scanAndBlurSensitiveContent(_ imagePath: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
     // Handle React Native file URIs by removing file:// prefix if present
     let processedPath = imagePath.replacingOccurrences(of: "file://", with: "")
     
@@ -115,25 +36,50 @@ class SensitiveScan: NSObject {
       return
     }
     
-    // Run face detection and blurring on a background queue
+    // Run face and text detection and blurring on a background queue
     DispatchQueue.global(qos: .userInitiated).async {
-      self.detectFacesWithCoordinates(in: cgImage, imageSize: originalImage.size) { faceData in
+      let group = DispatchGroup()
+      var faceCoordinates: [SensitiveCoordinate] = []
+      var textCoordinates: [SensitiveCoordinate] = []
+      
+      group.enter()
+      ScanforFace.detectFaces(in: cgImage, imageSize: originalImage.size) { faces in
+        faceCoordinates = faces
+        group.leave()
+      }
+      
+      group.enter()
+      ScanforText.detectText(in: cgImage, imageSize: originalImage.size) { text in
+        textCoordinates = text
+        group.leave()
+      }
+      
+      group.notify(queue: .global(qos: .userInitiated)) {
+        let allCoordinates = faceCoordinates + textCoordinates
         
-        guard !faceData.isEmpty else {
-          // No faces found, return original image path
+        guard !allCoordinates.isEmpty else {
+          // No sensitive content found, return original image path
           DispatchQueue.main.async {
             resolver([
               "success": true,
               "blurredImagePath": imagePath,
-              "facesBlurred": 0,
-              "message": "No faces found to blur"
+              "sensitiveItemsFound": 0,
+              "sensitiveItemsBlurred": 0,
+              "message": "No sensitive content found to blur",
+              "coordinates": [],
+              "debugDetectedTexts": ""
             ])
           }
           return
         }
         
-        // Apply blur to faces
-        if let blurredImage = self.blurFacesInUIImage(originalImage, faceData: faceData) {
+        // Extract PII texts for debugging (these are already filtered by PIIDetector)
+        let piiTextsDebug = allCoordinates
+          .compactMap { $0.textContent }
+          .joined(separator: ", ")
+        
+        // Apply blur to all sensitive content
+        if let blurredImage = self.blurSensitiveContent(originalImage, coordinates: allCoordinates) {
           // Save blurred image to temporary location
           let tempDir = FileManager.default.temporaryDirectory
           let fileName = (processedPath as NSString).lastPathComponent
@@ -150,8 +96,11 @@ class SensitiveScan: NSObject {
                 resolver([
                   "success": true,
                   "blurredImagePath": "file://\(blurredImagePath)",
-                  "facesBlurred": faceData.count,
-                  "message": "Successfully blurred \(faceData.count) face(s)"
+                  "sensitiveItemsFound": allCoordinates.count,
+                  "sensitiveItemsBlurred": allCoordinates.count,
+                  "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)",
+                  "coordinates": allCoordinates.map { $0.toDictionary() },
+                  "debugDetectedTexts": piiTextsDebug
                 ])
               }
             } catch {
@@ -173,7 +122,7 @@ class SensitiveScan: NSObject {
     }
   }
   
-  private func blurFacesInUIImage(_ image: UIImage, faceData: [[String: Any]]) -> UIImage? {
+  private func blurSensitiveContent(_ image: UIImage, coordinates: [SensitiveCoordinate]) -> UIImage? {
     // Start with original image
     UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
     image.draw(at: .zero)
@@ -184,12 +133,12 @@ class SensitiveScan: NSObject {
       return nil
     }
     
-    // Apply blur to each face region
-    for face in faceData {
-      guard let x = face["x"] as? CGFloat,
-            let y = face["y"] as? CGFloat,
-            let width = face["width"] as? CGFloat,
-            let height = face["height"] as? CGFloat else { continue }
+    // Apply blur to each sensitive content region
+    for coordinate in coordinates {
+      let x = coordinate.x
+      let y = coordinate.y
+      let width = coordinate.width
+      let height = coordinate.height
       
       // Add padding around face for better blur coverage
       let padding: CGFloat = 30

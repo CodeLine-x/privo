@@ -2,117 +2,104 @@ import { NativeModules, Platform, Alert } from "react-native";
 
 const { SensitiveScan } = NativeModules;
 
-export interface FaceCoordinate {
+console.log("=== NativeBridge Initialization ===");
+console.log("Platform:", Platform.OS);
+console.log("NativeModules:", NativeModules);
+console.log("Available modules:", Object.keys(NativeModules));
+console.log("Total modules count:", Object.keys(NativeModules).length);
+
+// Log all available modules with their details
+Object.keys(NativeModules).forEach((moduleName) => {
+  const module = NativeModules[moduleName];
+  console.log(`Module: ${moduleName}`);
+  console.log(`  - Type: ${typeof module}`);
+  console.log(
+    `  - Methods: ${
+      module && typeof module === "object" ? Object.keys(module) : "N/A"
+    }`
+  );
+});
+
+console.log("SensitiveScan module:", SensitiveScan);
+console.log("SensitiveScan type:", typeof SensitiveScan);
+if (SensitiveScan) {
+  console.log("SensitiveScan methods:", Object.keys(SensitiveScan));
+}
+
+export interface SensitiveCoordinate {
   x: number;
   y: number;
   width: number;
   height: number;
   confidence: number;
+  textContent?: string;
 }
 
-export interface FaceDetectionResult {
-  hasFaces: boolean;
-  faceCount: number;
-  message: string;
-  faces?: FaceCoordinate[];
-}
-
-export interface BlurResult {
+export interface SensitiveScanResult {
   success: boolean;
   blurredImagePath: string;
-  facesBlurred: number;
+  sensitiveItemsFound: number;
+  sensitiveItemsBlurred: number;
   message: string;
+  coordinates?: SensitiveCoordinate[];
+  debugDetectedTexts?: string;
 }
 
 export class NativeBridge {
-  static async detectFaces(imagePath: string): Promise<FaceDetectionResult> {
-    if (Platform.OS !== "ios") {
-      // Return mock result for non-iOS platforms
-      return {
-        hasFaces: false,
-        faceCount: 0,
-        message: "Face detection only available on iOS"
-      };
-    }
+  static async scanAndBlurSensitiveContent(
+    imagePath: string
+  ): Promise<SensitiveScanResult> {
+    console.log("=== scanAndBlurSensitiveContent called ===");
+    console.log("Platform:", Platform.OS);
+    console.log("Image path:", imagePath);
+    console.log("SensitiveScan available:", !!SensitiveScan);
 
-    try {
-      const result = await SensitiveScan.detectFaces(imagePath);
-      return result;
-    } catch (error) {
-      console.error("Error detecting faces:", error);
-      throw error;
-    }
-  }
-
-  static async blurFacesInImage(imagePath: string): Promise<BlurResult> {
-    if (Platform.OS !== "ios") {
-      // Return mock result for non-iOS platforms
+    if (Platform.OS !== "ios" && Platform.OS !== "android") {
+      console.log("Platform not supported:", Platform.OS);
       return {
         success: false,
         blurredImagePath: imagePath,
-        facesBlurred: 0,
-        message: "Face blurring only available on iOS"
+        sensitiveItemsFound: 0,
+        sensitiveItemsBlurred: 0,
+        message: "Sensitive content scanning only available on iOS and Android",
       };
     }
 
+    if (!SensitiveScan) {
+      console.error("SensitiveScan module not available!");
+      throw new Error("SensitiveScan module not available");
+    }
+
     try {
-      const result = await SensitiveScan.blurFacesInImage(imagePath);
+      console.log("Calling SensitiveScan.scanAndBlurSensitiveContent...");
+      const result = await SensitiveScan.scanAndBlurSensitiveContent(imagePath);
+      console.log("Scan result:", result);
       return result;
     } catch (error) {
-      console.error("Error blurring faces:", error);
+      console.error("Error scanning and blurring sensitive content:", error);
       throw error;
     }
   }
 
-  static async scanImageAndOfferBlur(imagePath: string, onBlurComplete?: (blurredPath: string) => void): Promise<void> {
+  static async scanImageAndOfferBlur(
+    imagePath: string,
+    onBlurComplete?: (blurredPath: string) => void
+  ): Promise<void> {
     try {
-      const result = await this.detectFaces(imagePath);
-      
-      if (result.hasFaces) {
-        Alert.alert(
-          "Sensitive Content Detected", 
-          `Found ${result.faceCount} face(s) in the image. This content contains privacy-sensitive information.`,
-          [
-            { text: "Keep Original", style: "cancel" },
-            { 
-              text: "Blur Faces", 
-              style: "default",
-              onPress: async () => {
-                try {
-                  const blurResult = await this.blurFacesInImage(imagePath);
-                  
-                  if (blurResult.success && onBlurComplete) {
-                    onBlurComplete(blurResult.blurredImagePath);
-                  }
-                  Alert.alert(
-                    "Faces Blurred",
-                    blurResult.message,
-                    [{ text: "OK", style: "default" }]
-                  );
-                } catch (error) {
-                  console.error("Error blurring faces:", error);
-                  Alert.alert(
-                    "Blur Error",
-                    "Failed to blur faces. Please try again.",
-                    [{ text: "OK", style: "default" }]
-                  );
-                }
-              }
-            }
-          ]
-        );
-      } else {
-        Alert.alert(
-          "No Sensitive Content", 
-          "No faces detected in this image. Content appears safe to share.",
-          [{ text: "OK", style: "default" }]
-        );
+      const result = await this.scanAndBlurSensitiveContent(imagePath);
+
+      if (
+        result.success &&
+        result.sensitiveItemsBlurred > 0 &&
+        onBlurComplete
+      ) {
+        onBlurComplete(result.blurredImagePath);
       }
     } catch (error) {
-      console.error("Error scanning image:", error);
+      console.error("Error scanning and blurring sensitive content:", error);
       Alert.alert(
-        "Scan Error", 
-        "Unable to scan image for sensitive content. Please try again.",
+        "Scan Error",
+        "Failed to scan and blur sensitive content. Please try again.",
         [{ text: "OK", style: "default" }]
       );
     }
@@ -120,25 +107,25 @@ export class NativeBridge {
 
   static async scanImageAndAlert(imagePath: string): Promise<void> {
     try {
-      const result = await this.detectFaces(imagePath);
-      
-      if (result.hasFaces) {
+      const result = await this.scanAndBlurSensitiveContent(imagePath);
+
+      if (result.sensitiveItemsFound > 0) {
         Alert.alert(
-          "Sensitive Content Detected", 
-          `Found ${result.faceCount} face(s) in the image. This content contains privacy-sensitive information.`,
+          "Sensitive Content Detected",
+          `Found ${result.sensitiveItemsFound} sensitive item(s) in the image. Content has been automatically blurred for privacy.`,
           [{ text: "OK", style: "default" }]
         );
       } else {
         Alert.alert(
-          "No Sensitive Content", 
-          "No faces detected in this image. Content appears safe to share.",
+          "No Sensitive Content",
+          "No sensitive content detected in this image. Content appears safe to share.",
           [{ text: "OK", style: "default" }]
         );
       }
     } catch (error) {
       console.error("Error scanning image:", error);
       Alert.alert(
-        "Scan Error", 
+        "Scan Error",
         "Unable to scan image for sensitive content. Please try again.",
         [{ text: "OK", style: "default" }]
       );

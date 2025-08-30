@@ -31,7 +31,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
-rootProject.name = 'privo_android'
+rootProject.name = 'privo'
 
 expoAutolinking.useExpoVersionCatalog()
 

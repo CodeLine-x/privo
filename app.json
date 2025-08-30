@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "privo_android",
-    "slug": "privo_android",
+    "name": "privo",
+    "slug": "privo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kohzhirong.privo-android",
+      "bundleIdentifier": "com.kohzhirong.privo",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Privo needs access to your photo library to scan images for sensitive content like faces and protect your privacy.",
         "NSCameraUsageDescription": "Privo needs access to your camera to take photos and scan them for sensitive content to protect your privacy."
@@ -26,7 +26,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.kohzhirong.privoandroid"
+      "package": "com.kohzhirong.privo"
     },
     "web": {
       "favicon": "./assets/favicon.png"

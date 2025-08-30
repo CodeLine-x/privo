@@ -17,6 +17,7 @@ import { ImageGrid } from "../components/ImageGrid";
 import { ImageHandler } from "../utils/ImageHandler";
 import { StorageManager } from "../utils/StorageManager";
 import { NativeBridge } from "../utils/NativeBridge";
+import * as FileSystem from "expo-file-system";
 
 export function GalleryScreen() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -35,21 +36,34 @@ export function GalleryScreen() {
     setSelectedImages(images);
   };
 
-  const processImageForFaces = async (imagePath: string): Promise<{ hasFaces: boolean; faceCount: number }> => {
+  const processImageForSensitiveContent = async (
+    imagePath: string
+  ): Promise<{
+    hasSensitiveContent: boolean;
+    itemCount: number;
+    detectedTexts?: string;
+  }> => {
     try {
-      const result = await NativeBridge.detectFaces(imagePath);
-      
-      if (result.hasFaces) {
-        const blurResult = await NativeBridge.blurFacesInImage(imagePath);
-        if (blurResult.success) {
-          await storageManager.updateImageWithBlurredVersion(imagePath, blurResult.blurredImagePath);
-        }
+      const result = await NativeBridge.scanAndBlurSensitiveContent(imagePath);
+
+      // Use the debug field directly from native response
+      const detectedTexts = result.debugDetectedTexts || "";
+
+      if (result.success && result.sensitiveItemsBlurred > 0) {
+        await storageManager.updateImageWithBlurredVersion(
+          imagePath,
+          result.blurredImagePath
+        );
       }
-      
-      return { hasFaces: result.hasFaces, faceCount: result.faceCount };
+
+      return {
+        hasSensitiveContent: result.sensitiveItemsFound > 0,
+        itemCount: result.sensitiveItemsFound,
+        detectedTexts,
+      };
     } catch (error) {
-      console.error("Error processing image for faces:", error);
-      return { hasFaces: false, faceCount: 0 };
+      console.error("Error processing image for sensitive content:", error);
+      return { hasSensitiveContent: false, itemCount: 0 };
     }
   };
 
@@ -74,31 +88,39 @@ export function GalleryScreen() {
     try {
       const validImages = await imageHandler.takePhoto();
       if (validImages.length > 0) {
-        const updatedImages = [...selectedImages, ...validImages];
+        const updatedImages = [...validImages, ...selectedImages];
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
-        
-        // Process each image for face detection and blur
-        let totalFaces = 0;
+
+        // Process each image for sensitive content detection and blur
+        let totalSensitiveItems = 0;
         let processedCount = 0;
-        
+        let allDetectedTexts: string[] = [];
+
         for (const imagePath of validImages) {
-          const result = await processImageForFaces(imagePath);
-          totalFaces += result.faceCount;
-          if (result.hasFaces) processedCount++;
+          const result = await processImageForSensitiveContent(imagePath);
+          totalSensitiveItems += result.itemCount;
+          if (result.hasSensitiveContent) processedCount++;
+          if (result.detectedTexts) {
+            allDetectedTexts.push(result.detectedTexts);
+          }
         }
-        
+
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
-        
-        // Show meaningful feedback
-        if (totalFaces > 0) {
-          Alert.alert(
-            "Photo Processed", 
-            `Found ${totalFaces} face(s) in ${processedCount} image(s). Faces have been automatically blurred for privacy.`
-          );
+
+        // Show meaningful feedback with detected text debug info
+        if (totalSensitiveItems > 0) {
+          let message = `Found ${totalSensitiveItems} face(s) in ${processedCount} image. Faces have been blurred for privacy.`;
+
+          message += `\n\nDetected Text: ${allDetectedTexts.join(", ")}`;
+
+          Alert.alert("Photo Processed", message);
         } else {
-          Alert.alert("Success", "Photo taken successfully! No faces detected.");
+          Alert.alert(
+            "Success",
+            "Photo taken successfully! No faces detected."
+          );
         }
       }
     } catch (error) {
@@ -111,31 +133,39 @@ export function GalleryScreen() {
     try {
       const validImages = await imageHandler.pickFromGallery();
       if (validImages.length > 0) {
-        const updatedImages = [...selectedImages, ...validImages];
+        const updatedImages = [...validImages, ...selectedImages];
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
-        
-        // Process each image for face detection and blur
-        let totalFaces = 0;
+
+        // Process each image for sensitive content detection and blur
+        let totalSensitiveItems = 0;
         let processedCount = 0;
-        
+        let allDetectedTexts: string[] = [];
+
         for (const imagePath of validImages) {
-          const result = await processImageForFaces(imagePath);
-          totalFaces += result.faceCount;
-          if (result.hasFaces) processedCount++;
+          const result = await processImageForSensitiveContent(imagePath);
+          totalSensitiveItems += result.itemCount;
+          if (result.hasSensitiveContent) processedCount++;
+          if (result.detectedTexts) {
+            allDetectedTexts.push(result.detectedTexts);
+          }
         }
-        
+
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
-        
-        // Show meaningful feedback
-        if (totalFaces > 0) {
-          Alert.alert(
-            "Images Processed", 
-            `Selected ${validImages.length} image(s). Found ${totalFaces} face(s) in ${processedCount} image(s). Faces have been automatically blurred for privacy.`
-          );
+
+        // Show meaningful feedback with detected text debug info
+        if (totalSensitiveItems > 0) {
+          let message = `Selected ${validImages.length} image(s). Found ${totalSensitiveItems} face(s) in ${processedCount} image(s). Faces have been blurred for privacy.`;
+
+          message += `\n\nDetected Text: ${allDetectedTexts.join(", ")}`;
+
+          Alert.alert("Images Processed", message);
         } else {
-          Alert.alert("Success", `${validImages.length} image(s) selected! No faces detected.`);
+          Alert.alert(
+            "Success",
+            `${validImages.length} image(s) selected! No faces detected.`
+          );
         }
       }
     } catch (error) {
@@ -165,7 +195,7 @@ export function GalleryScreen() {
   const clearAllImages = async () => {
     Alert.alert(
       "Clear All Images",
-      "Are you sure you want to remove all uploaded images?",
+      "Are you sure you want to remove all uploaded images and files?",
       [
         {
           text: "Cancel",
@@ -175,8 +205,74 @@ export function GalleryScreen() {
           text: "Clear All",
           style: "destructive",
           onPress: async () => {
-            setSelectedImages([]);
-            await storageManager.saveImages([]);
+            try {
+              console.log("=== Clearing all images and files ===");
+
+              // Clear the images from storage
+              setSelectedImages([]);
+              await storageManager.saveImages([]);
+
+              // Clear all image files from cache and document directories
+              const cacheDir = FileSystem.cacheDirectory;
+              const documentDir = FileSystem.documentDirectory;
+
+              // List all files in cache directory
+              const cacheFiles = await FileSystem.readDirectoryAsync(cacheDir);
+
+              // List all files in document directory
+              const documentFiles = await FileSystem.readDirectoryAsync(
+                documentDir
+              );
+
+              let deletedCount = 0;
+
+              // Delete cache image files
+              for (const fileName of cacheFiles) {
+                if (fileName.match(/\.(jpg|jpeg|png|webp)$/i)) {
+                  const filePath = `${cacheDir}${fileName}`;
+                  try {
+                    await FileSystem.deleteAsync(filePath);
+                    console.log(`Deleted cache file: ${fileName}`);
+                    deletedCount++;
+                  } catch (error) {
+                    console.error(
+                      `Failed to delete cache file ${fileName}:`,
+                      error
+                    );
+                  }
+                }
+              }
+
+              // Delete document image files
+              for (const fileName of documentFiles) {
+                if (fileName.match(/\.(jpg|jpeg|png|webp)$/i)) {
+                  const filePath = `${documentDir}${fileName}`;
+                  try {
+                    await FileSystem.deleteAsync(filePath);
+                    console.log(`Deleted document file: ${fileName}`);
+                    deletedCount++;
+                  } catch (error) {
+                    console.error(
+                      `Failed to delete document file ${fileName}:`,
+                      error
+                    );
+                  }
+                }
+              }
+
+              console.log(`Cleared ${deletedCount} image files`);
+
+              Alert.alert(
+                "Cleared Successfully",
+                `Removed all images and deleted ${deletedCount} files.`
+              );
+            } catch (error) {
+              console.error("Error clearing images and files:", error);
+              Alert.alert(
+                "Error",
+                "Failed to clear some files. Please try again."
+              );
+            }
           },
         },
       ]
