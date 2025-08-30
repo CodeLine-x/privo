@@ -78,28 +78,17 @@ class ImageAugmenting {
                 val fileName = originalFile.nameWithoutExtension
                 val fileExtension = originalFile.extension
                 
-                // Save full-size blurred image
+                // Save full-size blurred image only (no thumbnail)
                 val blurredFileName = "${fileName}_blurred.$fileExtension"
                 val blurredFile = File(cacheDir, blurredFileName)
                 
-                Log.d(TAG, "Saving full-size blurred image to: ${blurredFile.absolutePath}")
+                Log.d(TAG, "Saving blurred image to: ${blurredFile.absolutePath}")
                 
                 FileOutputStream(blurredFile).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                 }
                 
-                // Create and save lightweight thumbnail (300x300 max)
-                val thumbnailBitmap = createThumbnail(bitmap, 300)
-                val thumbnailFileName = "${fileName}_blurred_thumb.$fileExtension"
-                val thumbnailFile = File(cacheDir, thumbnailFileName)
-                
-                Log.d(TAG, "Saving thumbnail to: ${thumbnailFile.absolutePath}")
-                
-                FileOutputStream(thumbnailFile).use { out ->
-                    thumbnailBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
-                }
-                
-                Log.d(TAG, "Both full-size and thumbnail blurred images saved successfully")
+                Log.d(TAG, "Blurred image saved successfully")
                 blurredFile.absolutePath
             } catch (exception: Exception) {
                 Log.e(TAG, "Error saving blurred image to file", exception)
@@ -167,16 +156,6 @@ class ImageAugmenting {
             }
         }
         
-        // Create lightweight thumbnail for faster loading
-        private fun createThumbnail(bitmap: Bitmap, maxSize: Int): Bitmap {
-            val width = bitmap.width
-            val height = bitmap.height
-            
-            val scale = minOf(maxSize.toFloat() / width, maxSize.toFloat() / height)
-            val newWidth = (width * scale).toInt()
-            val newHeight = (height * scale).toInt()
-            
-            return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
-        }
+
     }
 }

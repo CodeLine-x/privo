@@ -23,6 +23,7 @@ export function GalleryScreen() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [showClearImage, setShowClearImage] = useState(false);
 
   const imageHandler = new ImageHandler();
   const storageManager = new StorageManager();
@@ -50,12 +51,49 @@ export function GalleryScreen() {
       const detectedTexts = result.debugDetectedTexts || "";
 
       if (result.success && result.sensitiveItemsBlurred > 0) {
+        // Parse detected texts from debugDetectedTexts
+        const detectedTexts: string[] = [];
+        const piiTexts: string[] = [];
+
+        if (result.debugDetectedTexts) {
+          // Extract all detected texts and PII texts from the debug string
+          const debugText = result.debugDetectedTexts;
+          const allTextsMatch = debugText.match(
+            /All detected texts: (.+?)(?= \| PII texts:|$)/
+          );
+          const piiTextsMatch = debugText.match(/PII texts: (.+?)$/);
+
+          if (
+            allTextsMatch &&
+            allTextsMatch[1] &&
+            allTextsMatch[1] !== "undefined"
+          ) {
+            const texts = allTextsMatch[1]
+              .split(", ")
+              .filter((text) => text.trim());
+            detectedTexts.push(...texts);
+          }
+
+          if (
+            piiTextsMatch &&
+            piiTextsMatch[1] &&
+            piiTextsMatch[1] !== "undefined"
+          ) {
+            const texts = piiTextsMatch[1]
+              .split(", ")
+              .filter((text) => text.trim());
+            piiTexts.push(...texts);
+          }
+        }
+
         await storageManager.updateImageWithBlurredVersion(
           imagePath,
           result.blurredImagePath,
           result.faceCount,
           result.textCount,
-          result.piiCount
+          result.piiCount,
+          detectedTexts,
+          piiTexts
         );
       }
 
@@ -287,6 +325,7 @@ export function GalleryScreen() {
       const processedUri = await imageHandler.handleImageUri(imageUri);
       if (processedUri && imageHandler.isValidImageUri(processedUri)) {
         setSelectedImage(processedUri);
+        setShowClearImage(true); // Show clear image when modal opens
         setIsImageModalVisible(true);
       } else {
         Alert.alert(
@@ -303,6 +342,7 @@ export function GalleryScreen() {
   const closeImageModal = () => {
     setIsImageModalVisible(false);
     setSelectedImage(null);
+    setShowClearImage(false);
   };
 
   return (
@@ -359,6 +399,7 @@ export function GalleryScreen() {
                 uri={selectedImage}
                 style={styles.fullScreenImage}
                 onError={closeImageModal}
+                showClearImage={showClearImage}
               />
             )}
           </View>

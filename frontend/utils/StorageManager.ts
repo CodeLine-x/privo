@@ -4,12 +4,13 @@ import * as FileSystem from "expo-file-system";
 export interface ImageData {
   originalPath: string;
   blurredPath?: string;
-  thumbnailPath?: string;
   hasFaces: boolean;
   uploadedAt: number;
   faceCount?: number;
   textCount?: number;
   piiCount?: number;
+  detectedTexts?: string[];
+  piiTexts?: string[];
 }
 
 export class StorageManager {
@@ -116,7 +117,9 @@ export class StorageManager {
     blurredPath: string,
     faceCount?: number,
     textCount?: number,
-    piiCount?: number
+    piiCount?: number,
+    detectedTexts?: string[],
+    piiTexts?: string[]
   ): Promise<void> {
     try {
       const metadata = await this.loadImageMetadata();
@@ -128,12 +131,22 @@ export class StorageManager {
       );
 
       if (existingIndex >= 0) {
-        // Update existing metadata - no thumbnail needed
+        // Update existing metadata
         updatedMetadata = metadata.map((item) =>
-          item.originalPath === originalPath ? { ...item, blurredPath } : item
+          item.originalPath === originalPath
+            ? {
+                ...item,
+                blurredPath,
+                faceCount,
+                textCount,
+                piiCount,
+                detectedTexts,
+                piiTexts,
+              }
+            : item
         );
       } else {
-        // Create new metadata entry - no thumbnail needed
+        // Create new metadata entry
         const newMetadata: ImageData = {
           originalPath,
           blurredPath,
@@ -142,6 +155,8 @@ export class StorageManager {
           faceCount,
           textCount,
           piiCount,
+          detectedTexts,
+          piiTexts,
         };
         updatedMetadata = [...metadata, newMetadata];
       }

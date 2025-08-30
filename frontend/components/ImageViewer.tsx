@@ -14,11 +14,16 @@ interface ImageViewerProps {
   uri: string;
   style?: StyleProp<ImageStyle>;
   onError?: () => void;
+  showClearImage?: boolean;
 }
 
-export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
+export function ImageViewer({
+  uri,
+  style,
+  onError,
+  showClearImage = false,
+}: ImageViewerProps) {
   const [imageMetadata, setImageMetadata] = useState<ImageData | undefined>();
-  const [showBlurred, setShowBlurred] = useState(false);
   const storageManager = new StorageManager();
 
   useEffect(() => {
@@ -31,19 +36,16 @@ export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
   };
 
   const getImageToDisplay = (): string => {
-    // Toggle between original and blurred version
-    if (showBlurred && imageMetadata?.blurredPath) {
-      return imageMetadata.blurredPath;
+    // If showClearImage is true, always show original
+    // Otherwise, show blurred version if available
+    if (showClearImage) {
+      return uri; // Always show original when password is entered
     }
-    return uri; // Show original by default
+    return imageMetadata?.blurredPath || uri; // Show blurred version as default
   };
 
   const hasBlurredVersion = (): boolean => {
     return !!imageMetadata?.blurredPath;
-  };
-
-  const toggleBlurView = () => {
-    setShowBlurred(!showBlurred);
   };
 
   return (
@@ -58,13 +60,31 @@ export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
         }}
       />
 
-      {/* Toggle button - only show if there's a blurred version */}
-      {hasBlurredVersion() && (
-        <TouchableOpacity style={styles.toggleButton} onPress={toggleBlurView}>
-          <Text style={styles.toggleText}>
-            {showBlurred ? "👁️ Show Original" : "🔒 Show Blurred"}
-          </Text>
-        </TouchableOpacity>
+      {/* Show image information when clear image is displayed */}
+      {showClearImage && imageMetadata && (
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoTitle}>Image Analysis Results:</Text>
+
+          {imageMetadata.faceCount !== undefined && (
+            <Text style={styles.infoText}>
+              Number of face(s) in the picture: {imageMetadata.faceCount}
+            </Text>
+          )}
+
+          {imageMetadata.detectedTexts &&
+            imageMetadata.detectedTexts.length > 0 && (
+              <Text style={styles.infoText}>
+                Text found in picture: [{imageMetadata.detectedTexts.join(", ")}
+                ]
+              </Text>
+            )}
+
+          {imageMetadata.piiTexts && imageMetadata.piiTexts.length > 0 && (
+            <Text style={styles.infoText}>
+              PIIs detected: [{imageMetadata.piiTexts.join(", ")}]
+            </Text>
+          )}
+        </View>
       )}
     </View>
   );
@@ -81,19 +101,26 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  toggleButton: {
+  infoContainer: {
     position: "absolute",
-    top: 50,
+    bottom: 20,
+    left: 20,
     right: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    padding: 16,
+    borderRadius: 12,
     zIndex: 1,
   },
-  toggleText: {
+  infoTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  infoText: {
     color: "#ffffff",
     fontSize: 14,
-    fontWeight: "600",
+    marginBottom: 4,
+    lineHeight: 20,
   },
 });

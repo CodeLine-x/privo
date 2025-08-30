@@ -61,7 +61,7 @@ export function ImageGrid({
   };
 
   const getImageToDisplay = (imageUri: string): string => {
-    // Show blurred version if available, otherwise show original
+    // Always show blurred version as thumbnail if available, otherwise show original
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );

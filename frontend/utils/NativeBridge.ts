@@ -46,6 +46,8 @@ export interface SensitiveScanResult {
   faceCount?: number;
   textCount?: number;
   piiCount?: number;
+  detectedTexts?: string[];
+  piiTexts?: string[];
 }
 
 export class NativeBridge {
