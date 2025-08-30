@@ -121,9 +121,6 @@ export class StorageManager {
     try {
       const metadata = await this.loadImageMetadata();
 
-      // Generate thumbnail path from blurred path
-      const thumbnailPath = blurredPath.replace("_blurred.", "_blurred_thumb.");
-
       // Check if metadata exists for this image, if not create it
       let updatedMetadata;
       const existingIndex = metadata.findIndex(
@@ -131,25 +128,15 @@ export class StorageManager {
       );
 
       if (existingIndex >= 0) {
-        // Update existing metadata
+        // Update existing metadata - no thumbnail needed
         updatedMetadata = metadata.map((item) =>
-          item.originalPath === originalPath
-            ? {
-                ...item,
-                blurredPath,
-                thumbnailPath,
-                faceCount,
-                textCount,
-                piiCount,
-              }
-            : item
+          item.originalPath === originalPath ? { ...item, blurredPath } : item
         );
       } else {
-        // Create new metadata entry
+        // Create new metadata entry - no thumbnail needed
         const newMetadata: ImageData = {
           originalPath,
           blurredPath,
-          thumbnailPath,
           hasFaces: true,
           uploadedAt: Date.now(),
           faceCount,

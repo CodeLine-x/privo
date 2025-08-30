@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		2A8BBA552E6160AA00CE7A10 /* privoios/SensitiveScan.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */; };
-		2A8BBA562E6160AA00CE7A10 /* privoios/SensitiveScan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */; };
+		2A9E93D42E62D64D00263FF2 /* SensitiveScan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9E93D32E62D64D00263FF2 /* SensitiveScan.swift */; };
+		2A9E93D52E62D64D00263FF2 /* SensitiveScan.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A9E93D22E62D64D00263FF2 /* SensitiveScan.m */; };
 		2AA26BB42E620D39009EDD73 /* ScanforText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB22E620D39009EDD73 /* ScanforText.swift */; };
 		2AA26BB52E620D39009EDD73 /* PIIDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB02E620D39009EDD73 /* PIIDetector.swift */; };
 		2AA26BB62E620D39009EDD73 /* ScanforFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA26BB12E620D39009EDD73 /* ScanforFace.swift */; };
@@ -26,8 +26,8 @@
 		13B07F961A680F5B00A75B9A /* privoios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = privoios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = privoios/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = privoios/Info.plist; sourceTree = "<group>"; };
-		2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = privoios/SensitiveScan.m; sourceTree = "<group>"; };
-		2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = privoios/SensitiveScan.swift; sourceTree = "<group>"; };
+		2A9E93D22E62D64D00263FF2 /* SensitiveScan.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SensitiveScan.m; sourceTree = "<group>"; };
+		2A9E93D32E62D64D00263FF2 /* SensitiveScan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveScan.swift; sourceTree = "<group>"; };
 		2AA26BB02E620D39009EDD73 /* PIIDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIIDetector.swift; sourceTree = "<group>"; };
 		2AA26BB12E620D39009EDD73 /* ScanforFace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforFace.swift; sourceTree = "<group>"; };
 		2AA26BB22E620D39009EDD73 /* ScanforText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanforText.swift; sourceTree = "<group>"; };
@@ -59,12 +59,12 @@
 		13B07FAE1A68108700A75B9A /* privoios */ = {
 			isa = PBXGroup;
 			children = (
+				2A9E93D22E62D64D00263FF2 /* SensitiveScan.m */,
+				2A9E93D32E62D64D00263FF2 /* SensitiveScan.swift */,
 				2AA26BB02E620D39009EDD73 /* PIIDetector.swift */,
 				2AA26BB12E620D39009EDD73 /* ScanforFace.swift */,
 				2AA26BB22E620D39009EDD73 /* ScanforText.swift */,
 				2AA26BB32E620D39009EDD73 /* SensitiveCoordinates.swift */,
-				2A8BBA532E6160AA00CE7A10 /* privoios/SensitiveScan.m */,
-				2A8BBA542E6160AA00CE7A10 /* privoios/SensitiveScan.swift */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* privoios-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
@@ -341,10 +341,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A9E93D42E62D64D00263FF2 /* SensitiveScan.swift in Sources */,
+				2A9E93D52E62D64D00263FF2 /* SensitiveScan.m in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				528D9E737772195D8908DA11 /* ExpoModulesProvider.swift in Sources */,
-				2A8BBA552E6160AA00CE7A10 /* privoios/SensitiveScan.m in Sources */,
-				2A8BBA562E6160AA00CE7A10 /* privoios/SensitiveScan.swift in Sources */,
 				2AA26BB42E620D39009EDD73 /* ScanforText.swift in Sources */,
 				2AA26BB52E620D39009EDD73 /* PIIDetector.swift in Sources */,
 				2AA26BB62E620D39009EDD73 /* ScanforFace.swift in Sources */,
