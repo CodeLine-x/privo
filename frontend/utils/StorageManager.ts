@@ -128,7 +128,7 @@ export class StorageManager {
 
   async updateImageWithBlurredVersion(
     originalPath: string,
-    blurredPath: string,
+    blurredPath: string | undefined,
     faceCount?: number,
     textCount?: number,
     piiCount?: number,
@@ -155,7 +155,7 @@ export class StorageManager {
           item.originalPath === originalPath
             ? {
                 ...item,
-                blurredPath,
+                blurredPath: blurredPath && blurredPath !== originalPath ? blurredPath : undefined,
                 thumbnailPath,
                 faceCount,
                 textCount,
@@ -169,9 +169,9 @@ export class StorageManager {
         // Create new metadata entry
         const newMetadata: ImageData = {
           originalPath,
-          blurredPath,
+          blurredPath: blurredPath && blurredPath !== originalPath ? blurredPath : undefined,
           thumbnailPath,
-          hasFaces: true,
+          hasFaces: Boolean((faceCount && faceCount > 0) || (textCount && textCount > 0) || (piiCount && piiCount > 0)),
           uploadedAt: Date.now(),
           faceCount,
           textCount,

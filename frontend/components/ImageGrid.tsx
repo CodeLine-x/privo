@@ -40,10 +40,10 @@ export function ImageGrid({
 
   const getImageToDisplay = (imageUri: string): string => {
     // Show blurred version if available, otherwise show original
-    // Note: thumbnailPath is now always undefined, so we skip it
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
+    // Only use blurredPath if it exists and is different from original
     return metadata?.blurredPath || imageUri;
   };
 
@@ -51,6 +51,8 @@ export function ImageGrid({
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
+    // Only show "Private" tag if sensitive content was actually detected
+    // The blurredPath will only be set if sensitive content was found
     return !!metadata?.blurredPath;
   };
 

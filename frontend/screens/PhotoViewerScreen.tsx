@@ -30,7 +30,7 @@ export function PhotoViewerScreen({
   onBack,
 }: PhotoViewerScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [showControls, setShowControls] = useState(false);
+  const [showControls, setShowControls] = useState(true); // Always show controls
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [unlockedImages, setUnlockedImages] = useState<Set<number>>(new Set());
@@ -40,9 +40,9 @@ export function PhotoViewerScreen({
   const [showInfo, setShowInfo] = useState(false);
   const [imageMetadata, setImageMetadata] = useState<ImageData[]>([]);
 
-  // Animation values
-  const headerAnimation = useRef(new Animated.Value(0)).current;
-  const footerAnimation = useRef(new Animated.Value(0)).current;
+  // Animation values - start with controls visible
+  const headerAnimation = useRef(new Animated.Value(1)).current;
+  const footerAnimation = useRef(new Animated.Value(1)).current;
 
   const storageManager = new StorageManager();
 
@@ -55,25 +55,7 @@ export function PhotoViewerScreen({
     setImageMetadata(metadata);
   };
 
-  const toggleControls = () => {
-    const newShowControls = !showControls;
-    setShowControls(newShowControls);
 
-    const toValue = newShowControls ? 1 : 0;
-
-    Animated.parallel([
-      Animated.timing(headerAnimation, {
-        toValue,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(footerAnimation, {
-        toValue,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   const handleEnterPassword = () => {
     setIsPasswordModalVisible(true);
@@ -107,7 +89,7 @@ export function PhotoViewerScreen({
   const getImageToDisplay = (index: number): string => {
     if (unlockedImages.has(index)) {
       const metadata = imageMetadata.find(
-        (item) => item.blurredPath === images[index]
+        (item) => item.originalPath === images[index] || item.blurredPath === images[index]
       );
       return metadata?.originalPath || images[index];
     }
@@ -125,17 +107,77 @@ export function PhotoViewerScreen({
     }
 
     const currentImagePath = images[currentIndex];
+    // Look for metadata by both originalPath and blurredPath
     const metadata = imageMetadata.find(
-      (item) => item.blurredPath === currentImagePath
+      (item) => item.originalPath === currentImagePath || item.blurredPath === currentImagePath
     );
     return metadata || null;
+  };
+
+  const renderInfoContent = () => {
+    const metadata = getCurrentImageMetadata();
+    if (!metadata) {
+      return <Text style={styles.infoPanelText}>No metadata available</Text>;
+    }
+
+    return (
+      <>
+        {/* Summary section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoSectionTitle}>Summary</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Faces detected:</Text>
+            <Text style={styles.infoValue}>{metadata.faceCount || 0}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>PII items:</Text>
+            <Text style={styles.infoValue}>{metadata.piiCount || 0}</Text>
+          </View>
+        </View>
+
+        {/* PII Data section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoSectionTitle}>Detected Information</Text>
+          {metadata.piiTexts && Array.isArray(metadata.piiTexts) && metadata.piiTexts.length > 0 ? (
+            <View style={styles.piiList}>
+              {metadata.piiTexts
+                .filter((piiText) => piiText && String(piiText).trim() !== "")
+                .map((piiText, index) => {
+                  const displayText = String(piiText).trim();
+                  return (
+                    <View key={index} style={styles.piiItem}>
+                      <Text style={styles.piiText}>{displayText}</Text>
+                    </View>
+                  );
+                })}
+            </View>
+          ) : (
+            <Text style={styles.infoPanelText}>No sensitive information found</Text>
+          )}
+        </View>
+
+        {/* Status section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoSectionTitle}>Status</Text>
+          <Text style={styles.infoPanelText}>
+            {(metadata.faceCount && metadata.faceCount > 0) || 
+             (metadata.piiCount && metadata.piiCount > 0) 
+              ? "Content has been protected for privacy" 
+              : "No sensitive content detected"}
+          </Text>
+        </View>
+      </>
+    );
   };
 
   // --- Swipe down handler ---
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dy) > 20,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only allow swipe down when info panel is not visible
+        if (showInfo) return false;
+        return Math.abs(gestureState.dy) > 20;
+      },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 50) {
           onBack(); // swipe down closes viewer
@@ -145,7 +187,7 @@ export function PhotoViewerScreen({
   ).current;
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
+    <View style={styles.container}>
       {/* Main Image Layer */}
       <ScrollView
         horizontal
@@ -167,20 +209,17 @@ export function PhotoViewerScreen({
         }}
         contentOffset={{ x: currentIndex * screenWidth, y: 0 }}
         style={styles.scrollView}
+        {...(showInfo ? {} : panResponder.panHandlers)}
       >
         {images.map((imageUri, index) => (
           <View key={index} style={styles.imagePage}>
-            <TouchableOpacity
-              style={styles.imageContainer}
-              onPress={toggleControls}
-              activeOpacity={1}
-            >
-              <Image
-                source={{ uri: getImageToDisplay(index) }}
-                style={styles.image}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
+            <View style={styles.imageContainer}>
+                              <Image
+                  source={{ uri: getImageToDisplay(index) }}
+                  style={styles.image}
+                  resizeMode="contain"
+                />
+              </View>
           </View>
         ))}
       </ScrollView>
@@ -234,10 +273,6 @@ export function PhotoViewerScreen({
         ]}
         pointerEvents={showControls ? "auto" : "none"}
       >
-        <TouchableOpacity style={styles.footerButton}>
-          <Text style={styles.footerButtonText}>Share</Text>
-        </TouchableOpacity>
-
         {/* Lock/Unlock button */}
         <TouchableOpacity
           style={styles.lockButton}
@@ -259,72 +294,30 @@ export function PhotoViewerScreen({
         >
           <Ionicons name="lock-closed-outline" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.footerButton}>
-          <Text style={styles.footerButtonText}>Delete</Text>
-        </TouchableOpacity>
       </Animated.View>
 
-      {/* Info Modal */}
+      {/* Info Panel - Slides up from bottom */}
       {authenticatedImages.has(currentIndex) && showInfo && (
-        <TouchableOpacity
-          style={styles.infoContainer}
-          onPress={handleInfoTap}
-          activeOpacity={1}
-        >
-          <ScrollView
-            style={styles.infoScrollView}
-            contentContainerStyle={styles.infoScrollContent}
-            showsVerticalScrollIndicator={true}
-          >
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>Image Information</Text>
-              {(() => {
-                const metadata = getCurrentImageMetadata();
-                if (!metadata) {
-                  return (
-                    <Text style={styles.infoText}>No metadata available</Text>
-                  );
-                }
-
-                return (
-                  <>
-                    {/* Show face count only if faces were detected */}
-                    {metadata.faceCount && metadata.faceCount > 0 && (
-                      <Text style={styles.infoText}>
-                        Number of faces detected: {metadata.faceCount}
-                      </Text>
-                    )}
-                    {/* Show PII data only if PII was detected */}
-                    {metadata.piiTexts &&
-                      Array.isArray(metadata.piiTexts) &&
-                      metadata.piiTexts.length > 0 && (
-                        <>
-                          <Text style={styles.infoText}>
-                            PII data detected:
-                          </Text>
-                          {metadata.piiTexts.map((piiText, index) => (
-                            <Text key={index} style={styles.piiText}>
-                              • {piiText || "Unknown PII"}
-                            </Text>
-                          ))}
-                        </>
-                      )}
-                    {/* Show message if no sensitive content detected */}
-                    {(!metadata.faceCount || metadata.faceCount === 0) &&
-                      (!metadata.piiTexts ||
-                        !Array.isArray(metadata.piiTexts) ||
-                        metadata.piiTexts.length === 0) && (
-                        <Text style={styles.infoText}>
-                          No sensitive content detected
-                        </Text>
-                      )}
-                  </>
-                );
-              })()}
+        <View style={styles.infoPanelContainer}>
+          <TouchableOpacity
+            style={styles.infoPanelOverlay}
+            onPress={handleInfoTap}
+            activeOpacity={1}
+          />
+          <View style={styles.infoPanel}>
+            <View style={styles.infoPanelHeader}>
+              <View style={styles.infoPanelHandle} />
+              <Text style={styles.infoPanelTitle}>Privacy Information</Text>
             </View>
-          </ScrollView>
-        </TouchableOpacity>
+            <ScrollView
+              style={styles.infoPanelScroll}
+              contentContainerStyle={styles.infoPanelContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderInfoContent()}
+            </ScrollView>
+          </View>
+        </View>
       )}
 
       {/* Password Modal */}
@@ -391,56 +384,115 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
   },
   image: { width: "100%", height: "100%" },
-  infoContainer: {
+  // New Info Panel Styles
+  infoPanelContainer: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
     zIndex: 3000,
   },
-  infoScrollView: { width: "100%", height: "100%" },
-  infoScrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  infoPanelOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
-  infoBox: {
+  infoPanel: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: "#FFFFFF",
-    padding: 24,
-    borderRadius: 16,
-    width: "85%",
-    alignItems: "center",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "70%",
+    minHeight: "40%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
     elevation: 8,
   },
-  infoTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 16,
-    color: "#2C2C2E",
-    letterSpacing: -0.3,
+  infoPanelHeader: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
-  infoText: {
-    fontSize: 16,
+  infoPanelHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 2,
+    marginBottom: 12,
+  },
+  infoPanelTitle: {
+    fontSize: 18,
+    fontWeight: "600",
     color: "#2C2C2E",
-    marginBottom: 8,
+    letterSpacing: -0.2,
+  },
+  infoPanelScroll: {
+    flex: 1,
+  },
+  infoPanelContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  infoPanelText: {
+    fontSize: 15,
+    color: "#2C2C2E",
     lineHeight: 22,
+    fontWeight: "400",
+  },
+  infoSection: {
+    marginBottom: 24,
+  },
+  infoSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2C2C2E",
+    marginBottom: 12,
+    letterSpacing: -0.1,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8F8F8",
+  },
+  infoLabel: {
+    fontSize: 15,
+    color: "#6C6C70",
     fontWeight: "500",
+  },
+  infoValue: {
+    fontSize: 15,
+    color: "#2C2C2E",
+    fontWeight: "600",
+  },
+  piiList: {
+    marginTop: 8,
+  },
+  piiItem: {
+    backgroundColor: "#F8F8F8",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 6,
   },
   piiText: {
     fontSize: 14,
     color: "#2C2C2E",
-    marginBottom: 4,
     lineHeight: 20,
-    fontWeight: "400",
-    marginLeft: 16,
+    fontWeight: "500",
   },
   headerOverlay: {
     position: "absolute",
@@ -482,7 +534,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 120,
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
     paddingVertical: 16,
@@ -529,9 +581,10 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.7)",
+    paddingTop: 250, // Move modal higher up
   },
   modalContent: {
     backgroundColor: "#FFFFFF",

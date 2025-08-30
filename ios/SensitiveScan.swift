@@ -67,7 +67,11 @@ class SensitiveScan: NSObject {
               "sensitiveItemsBlurred": 0,
               "message": "No sensitive content found to blur",
               "coordinates": [],
-              "debugDetectedTexts": ""
+              "debugDetectedTexts": "",
+              "faceCount": 0,
+              "textCount": 0,
+              "piiCount": 0,
+              "piiTexts": []
             ])
           }
           return
@@ -77,6 +81,12 @@ class SensitiveScan: NSObject {
         let piiTextsDebug = allCoordinates
           .compactMap { $0.textContent }
           .joined(separator: ", ")
+        
+        // Count different types of sensitive content
+        let faceCount = allCoordinates.filter { $0.type == .face }.count
+        let textCount = allCoordinates.filter { $0.type == .text }.count
+        let piiTexts = allCoordinates.compactMap { $0.textContent }
+        let piiCount = piiTexts.count
         
         // Apply blur to all sensitive content
         if let blurredImage = self.blurSensitiveContent(originalImage, coordinates: allCoordinates) {
@@ -100,7 +110,11 @@ class SensitiveScan: NSObject {
                   "sensitiveItemsBlurred": allCoordinates.count,
                   "message": "Successfully blurred \(allCoordinates.count) sensitive item(s)",
                   "coordinates": allCoordinates.map { $0.toDictionary() },
-                  "debugDetectedTexts": piiTextsDebug
+                  "debugDetectedTexts": piiTextsDebug,
+                  "faceCount": faceCount,
+                  "textCount": textCount,
+                  "piiCount": piiCount,
+                  "piiTexts": piiTexts
                 ])
               }
             } catch {
@@ -157,15 +171,15 @@ class SensitiveScan: NSObject {
       let rectanglePath = UIBezierPath(rect: blurRect)
       rectanglePath.addClip()
       
-      // Use different blur methods: pixelated for text, smooth for faces
+      // Use different censoring methods: heavy pixelation for faces, lighter pixelation for text
       let regionImage = cropImage(image, to: blurRect)
       if coordinate.type == .face {
-        // Smooth heavy blur for faces
-        if let heavyBlurredImage = applyHeavySquareBlur(to: regionImage) {
-          heavyBlurredImage.draw(in: blurRect)
+        // Heavy pixelation for faces (like the Android approach)
+        if let pixelatedImage = applyHeavyPixelation(to: regionImage) {
+          pixelatedImage.draw(in: blurRect)
         }
       } else {
-        // Pixelated blur for text/words
+        // Lighter pixelation for text/words
         if let pixelatedImage = applyPixelatedBlur(to: regionImage) {
           pixelatedImage.draw(in: blurRect)
         }
@@ -206,22 +220,32 @@ class SensitiveScan: NSObject {
     return UIImage(cgImage: cgImage)
   }
   
-  private func applyHeavySquareBlur(to image: UIImage?) -> UIImage? {
-    guard let image = image,
-          let ciImage = CIImage(image: image) else { return nil }
+  private func applyHeavyPixelation(to image: UIImage?) -> UIImage? {
+    guard let image = image else { return nil }
     
-    // Apply extremely heavy Gaussian blur for faces
-    let blurFilter = CIFilter(name: "CIGaussianBlur")!
-    blurFilter.setValue(ciImage, forKey: kCIInputImageKey)
-    blurFilter.setValue(10.0, forKey: kCIInputRadiusKey) // Very heavy blur for faces
+    // Get the CGImage
+    guard let cgImage = image.cgImage else { return nil }
     
-    guard let outputImage = blurFilter.outputImage else { return nil }
+    // Create a very small scaled down version (like Android's 3x3)
+    let smallSize = CGSize(width: 4, height: 4) // Even smaller than Android for more pixelation
+    UIGraphicsBeginImageContextWithOptions(smallSize, false, 1.0)
+    image.draw(in: CGRect(origin: .zero, size: smallSize))
+    let smallImage = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
     
-    let context = CIContext()
-    guard let cgImage = context.createCGImage(outputImage, from: ciImage.extent) else { return nil }
+    guard let smallCGImage = smallImage?.cgImage else { return nil }
     
-    return UIImage(cgImage: cgImage)
+    // Scale it back up to original size (this creates the heavy pixelation effect)
+    UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+    let largeRect = CGRect(origin: .zero, size: image.size)
+    smallImage?.draw(in: largeRect, blendMode: .normal, alpha: 1.0)
+    let pixelatedImage = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    
+    return pixelatedImage
   }
+  
+
   
   // Keep the old method as backup
   private func applyBlur(to image: UIImage?) -> UIImage? {
@@ -230,7 +254,7 @@ class SensitiveScan: NSObject {
     
     let blurFilter = CIFilter(name: "CIGaussianBlur")!
     blurFilter.setValue(ciImage, forKey: kCIInputImageKey)
-    blurFilter.setValue(10.0, forKey: kCIInputRadiusKey) // Increased blur for better privacy
+    blurFilter.setValue(25.0, forKey: kCIInputRadiusKey) // Increased blur for better privacy
     
     guard let outputImage = blurFilter.outputImage else { return nil }
     

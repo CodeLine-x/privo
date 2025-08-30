@@ -2,61 +2,20 @@ import React from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 
 interface BottomNavBarProps {
-  onHomePress?: () => void;
-  onGalleryPress?: () => void;
-  onSettingsPress?: () => void;
   onUploadPress?: () => void;
-  activeTab?: "home" | "gallery" | "settings";
 }
 
 export function BottomNavBar({
-  onHomePress,
-  onGalleryPress,
-  onSettingsPress,
   onUploadPress,
-  activeTab = "gallery",
 }: BottomNavBarProps) {
   return (
     <View style={styles.container}>
-      {/* Home Tab */}
-      <TouchableOpacity
-        style={[styles.navItem, activeTab === "home" && styles.activeNavItem]}
-        onPress={onHomePress || (() => {})}
-      >
-        <Text
-          style={[
-            styles.navLabel,
-            activeTab === "home" && styles.activeNavLabel,
-          ]}
-        >
-          Home
-        </Text>
-      </TouchableOpacity>
-
       {/* Upload Button */}
       <TouchableOpacity
         style={styles.uploadButton}
         onPress={onUploadPress || (() => {})}
       >
         <Text style={styles.uploadButtonText}>+</Text>
-      </TouchableOpacity>
-
-      {/* Gallery Tab */}
-      <TouchableOpacity
-        style={[
-          styles.navItem,
-          activeTab === "gallery" && styles.activeNavItem,
-        ]}
-        onPress={onGalleryPress || (() => {})}
-      >
-        <Text
-          style={[
-            styles.navLabel,
-            activeTab === "gallery" && styles.activeNavLabel,
-          ]}
-        >
-          Gallery
-        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -72,7 +31,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "center",
     paddingHorizontal: 24,
     paddingBottom: 24,
     paddingTop: 16,

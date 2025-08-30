@@ -46,6 +46,7 @@ export function GalleryScreen() {
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
+    // Only use blurredPath if it exists and is different from original
     return metadata?.blurredPath || imageUri;
   };
 
@@ -82,9 +83,15 @@ export function GalleryScreen() {
       }
 
       // Store metadata with detection results
+      // Only store blurredPath if sensitive content was detected and a different path was returned
+      const hasSensitiveContent = result.sensitiveItemsFound > 0;
+      const blurredPath = hasSensitiveContent && result.blurredImagePath !== imagePath 
+        ? result.blurredImagePath 
+        : undefined;
+      
       await storageManager.updateImageWithBlurredVersion(
         imagePath,
-        result.blurredImagePath || imagePath, // Use original path if no blur
+        blurredPath || imagePath, // Use original path if no blur
         result.faceCount || 0,
         result.textCount || 0,
         result.piiCount || 0,
@@ -391,12 +398,7 @@ export function GalleryScreen() {
         )}
       </ScrollView>
 
-      <BottomNavBar
-        activeTab="gallery"
-        onGalleryPress={() => {}} // Already on gallery
-        onHomePress={() => {}} // Navigate to home if implemented
-        onUploadPress={handleUpload}
-      />
+      <BottomNavBar onUploadPress={handleUpload} />
     </View>
   );
 }
