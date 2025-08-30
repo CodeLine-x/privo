@@ -36,9 +36,45 @@ object PIIDetector {
         "what", "where", "when", "why", "how", "who", "which", "yeah", "yep", "nope", "sure", "maybe", "perhaps", "really", "actually", "definitely", "probably", "possibly"
     )
     
-    // Main PII Detection Function
+    // Main PII Detection Function - Returns PII coordinates from text coordinates
+    fun detectPIIFromCoordinates(textCoordinates: List<SensitiveCoordinate>): List<SensitiveCoordinate> {
+        Log.d(TAG, "=== Starting PII detection from coordinates ===")
+        Log.d(TAG, "Input text coordinates: ${textCoordinates.size}")
+        
+        val piiCoordinates = mutableListOf<SensitiveCoordinate>()
+        
+        for (coordinate in textCoordinates) {
+            val text = coordinate.textContent ?: continue
+            val trimmedText = text.trim()
+            if (trimmedText.isEmpty()) continue
+            
+            Log.d(TAG, "Analyzing text: '$trimmedText'")
+            
+            // Check regex patterns first (faster)
+            if (containsStructuredPII(trimmedText)) {
+                Log.d(TAG, "Found structured PII: '$trimmedText'")
+                piiCoordinates.add(coordinate)
+                continue
+            }
+            
+            // Check for named entities (simplified version)
+            if (containsNamedEntities(trimmedText)) {
+                Log.d(TAG, "Found named entity: '$trimmedText'")
+                piiCoordinates.add(coordinate)
+            }
+        }
+        
+        Log.d(TAG, "PII detection completed. Found ${piiCoordinates.size} PII coordinates")
+        piiCoordinates.forEachIndexed { index, coord ->
+            Log.d(TAG, "PII coordinate $index: '${coord.textContent}' at x=${coord.x}, y=${coord.y}")
+        }
+        
+        return piiCoordinates
+    }
+    
+    // Legacy function for backward compatibility
     fun detectPII(texts: List<String>): List<String> {
-        Log.d(TAG, "=== Starting PII detection ===")
+        Log.d(TAG, "=== Starting PII detection (legacy) ===")
         Log.d(TAG, "Input texts: ${texts.joinToString(", ")}")
         
         val piiTexts = mutableListOf<String>()

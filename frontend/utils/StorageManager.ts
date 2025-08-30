@@ -7,6 +7,9 @@ export interface ImageData {
   thumbnailPath?: string;
   hasFaces: boolean;
   uploadedAt: number;
+  faceCount?: number;
+  textCount?: number;
+  piiCount?: number;
 }
 
 export class StorageManager {
@@ -83,7 +86,10 @@ export class StorageManager {
     return [];
   }
 
-  async addImageWithMetadata(imagePath: string, hasFaces: boolean = false): Promise<void> {
+  async addImageWithMetadata(
+    imagePath: string,
+    hasFaces: boolean = false
+  ): Promise<void> {
     try {
       // Load existing data
       const images = await this.loadImages();
@@ -94,7 +100,7 @@ export class StorageManager {
       const newMetadata: ImageData = {
         originalPath: imagePath,
         hasFaces,
-        uploadedAt: Date.now()
+        uploadedAt: Date.now(),
       };
 
       // Save updated data
@@ -105,22 +111,37 @@ export class StorageManager {
     }
   }
 
-  async updateImageWithBlurredVersion(originalPath: string, blurredPath: string): Promise<void> {
+  async updateImageWithBlurredVersion(
+    originalPath: string,
+    blurredPath: string,
+    faceCount?: number,
+    textCount?: number,
+    piiCount?: number
+  ): Promise<void> {
     try {
       const metadata = await this.loadImageMetadata();
-      
+
       // Generate thumbnail path from blurred path
-      const thumbnailPath = blurredPath.replace('_blurred.', '_blurred_thumb.');
-      
+      const thumbnailPath = blurredPath.replace("_blurred.", "_blurred_thumb.");
+
       // Check if metadata exists for this image, if not create it
       let updatedMetadata;
-      const existingIndex = metadata.findIndex(item => item.originalPath === originalPath);
-      
+      const existingIndex = metadata.findIndex(
+        (item) => item.originalPath === originalPath
+      );
+
       if (existingIndex >= 0) {
         // Update existing metadata
-        updatedMetadata = metadata.map(item => 
-          item.originalPath === originalPath 
-            ? { ...item, blurredPath, thumbnailPath } 
+        updatedMetadata = metadata.map((item) =>
+          item.originalPath === originalPath
+            ? {
+                ...item,
+                blurredPath,
+                thumbnailPath,
+                faceCount,
+                textCount,
+                piiCount,
+              }
             : item
         );
       } else {
@@ -130,11 +151,14 @@ export class StorageManager {
           blurredPath,
           thumbnailPath,
           hasFaces: true,
-          uploadedAt: Date.now()
+          uploadedAt: Date.now(),
+          faceCount,
+          textCount,
+          piiCount,
         };
         updatedMetadata = [...metadata, newMetadata];
       }
-      
+
       await this.saveImageMetadata(updatedMetadata);
     } catch (error) {
       console.error("Error updating image with blurred version:", error);
@@ -144,7 +168,7 @@ export class StorageManager {
   async getImageMetadata(imagePath: string): Promise<ImageData | undefined> {
     try {
       const metadata = await this.loadImageMetadata();
-      return metadata.find(item => item.originalPath === imagePath);
+      return metadata.find((item) => item.originalPath === imagePath);
     } catch (error) {
       console.error("Error getting image metadata:", error);
       return undefined;
@@ -156,8 +180,10 @@ export class StorageManager {
       const images = await this.loadImages();
       const metadata = await this.loadImageMetadata();
 
-      const updatedImages = images.filter(img => img !== imagePath);
-      const updatedMetadata = metadata.filter(item => item.originalPath !== imagePath);
+      const updatedImages = images.filter((img) => img !== imagePath);
+      const updatedMetadata = metadata.filter(
+        (item) => item.originalPath !== imagePath
+      );
 
       await this.saveImages(updatedImages);
       await this.saveImageMetadata(updatedMetadata);

@@ -43,6 +43,9 @@ export interface SensitiveScanResult {
   message: string;
   coordinates?: SensitiveCoordinate[];
   debugDetectedTexts?: string;
+  faceCount?: number;
+  textCount?: number;
+  piiCount?: number;
 }
 
 export class NativeBridge {

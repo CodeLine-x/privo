@@ -52,7 +52,10 @@ export function GalleryScreen() {
       if (result.success && result.sensitiveItemsBlurred > 0) {
         await storageManager.updateImageWithBlurredVersion(
           imagePath,
-          result.blurredImagePath
+          result.blurredImagePath,
+          result.faceCount,
+          result.textCount,
+          result.piiCount
         );
       }
 
