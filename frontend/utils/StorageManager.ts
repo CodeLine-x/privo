@@ -80,7 +80,20 @@ export class StorageManager {
 
       if (fileExists.exists) {
         const data = await FileSystem.readAsStringAsync(fileUri);
-        return JSON.parse(data) as ImageData[];
+        const metadata = JSON.parse(data) as ImageData[];
+        
+        // Migration: Clear old thumbnail paths that point to non-existent files
+        const migratedMetadata = metadata.map(item => ({
+          ...item,
+          thumbnailPath: undefined // Clear thumbnail path to force fallback to blurredPath
+        }));
+        
+        // Save the migrated metadata if any changes were made
+        if (migratedMetadata.some((item, index) => item.thumbnailPath !== metadata[index].thumbnailPath)) {
+          await this.saveImageMetadata(migratedMetadata);
+        }
+        
+        return migratedMetadata;
       }
     } catch (error) {
       console.error("Error loading image metadata:", error);
@@ -125,13 +138,10 @@ export class StorageManager {
     try {
       const metadata = await this.loadImageMetadata();
 
-      // Generate thumbnail path from blurred path only for Android
-      // iOS only creates blurred images, not separate thumbnails
+      // Both iOS and Android now only create blurred images, not separate thumbnails
+      // The blurred image can be used directly for display
       let thumbnailPath: string | undefined;
-      if (Platform.OS === "android" && blurredPath.includes("_blurred.")) {
-        thumbnailPath = blurredPath.replace("_blurred.", "_blurred_thumb.");
-      }
-      // For iOS, thumbnailPath stays undefined so fallback logic uses blurredPath
+      // For both platforms, thumbnailPath stays undefined so fallback logic uses blurredPath
 
       // Check if metadata exists for this image, if not create it
       let updatedMetadata;
@@ -202,6 +212,15 @@ export class StorageManager {
       await this.saveImageMetadata(updatedMetadata);
     } catch (error) {
       console.error("Error removing image and metadata:", error);
+    }
+  }
+
+  async clearAllMetadata(): Promise<void> {
+    try {
+      await this.saveImageMetadata([]);
+      console.log("All image metadata cleared successfully");
+    } catch (error) {
+      console.error("Error clearing all metadata:", error);
     }
   }
 }
