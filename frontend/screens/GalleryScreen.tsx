@@ -14,6 +14,7 @@ import { ImageViewer } from "../components/ImageViewer";
 import { UploadButton } from "../components/UploadButton";
 import { ClearButton } from "../components/ClearButton";
 import { ImageGrid } from "../components/ImageGrid";
+import { FileSystemViewer } from "../components/FileSystemViewer";
 import { ImageHandler } from "../utils/ImageHandler";
 import { StorageManager } from "../utils/StorageManager";
 import { NativeBridge } from "../utils/NativeBridge";
@@ -22,6 +23,7 @@ export function GalleryScreen() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [fileSystemRefreshKey, setFileSystemRefreshKey] = useState(0);
 
   const imageHandler = new ImageHandler();
   const storageManager = new StorageManager();
@@ -35,21 +37,30 @@ export function GalleryScreen() {
     setSelectedImages(images);
   };
 
-  const processImageForSensitiveContent = async (imagePath: string): Promise<{ hasSensitiveContent: boolean; itemCount: number; detectedTexts?: string }> => {
+  const processImageForSensitiveContent = async (
+    imagePath: string
+  ): Promise<{
+    hasSensitiveContent: boolean;
+    itemCount: number;
+    detectedTexts?: string;
+  }> => {
     try {
       const result = await NativeBridge.scanAndBlurSensitiveContent(imagePath);
-      
+
       // Use the debug field directly from native response
       const detectedTexts = result.debugDetectedTexts || "";
-      
+
       if (result.success && result.sensitiveItemsBlurred > 0) {
-        await storageManager.updateImageWithBlurredVersion(imagePath, result.blurredImagePath);
+        await storageManager.updateImageWithBlurredVersion(
+          imagePath,
+          result.blurredImagePath
+        );
       }
-      
-      return { 
-        hasSensitiveContent: result.sensitiveItemsFound > 0, 
+
+      return {
+        hasSensitiveContent: result.sensitiveItemsFound > 0,
         itemCount: result.sensitiveItemsFound,
-        detectedTexts
+        detectedTexts,
       };
     } catch (error) {
       console.error("Error processing image for sensitive content:", error);
@@ -78,15 +89,15 @@ export function GalleryScreen() {
     try {
       const validImages = await imageHandler.takePhoto();
       if (validImages.length > 0) {
-        const updatedImages = [...selectedImages, ...validImages];
+        const updatedImages = [...validImages, ...selectedImages];
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
-        
+
         // Process each image for sensitive content detection and blur
         let totalSensitiveItems = 0;
         let processedCount = 0;
         let allDetectedTexts: string[] = [];
-        
+
         for (const imagePath of validImages) {
           const result = await processImageForSensitiveContent(imagePath);
           totalSensitiveItems += result.itemCount;
@@ -95,19 +106,25 @@ export function GalleryScreen() {
             allDetectedTexts.push(result.detectedTexts);
           }
         }
-        
+
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
-        
+
+        // Refresh file system viewer
+        setFileSystemRefreshKey((prev) => prev + 1);
+
         // Show meaningful feedback with detected text debug info
         if (totalSensitiveItems > 0) {
-          let message = `Found ${totalSensitiveItems} sensitive item(s) in ${processedCount} image. Content has been automatically blurred for privacy.`;
-          
+          let message = `Found ${totalSensitiveItems} face(s) in ${processedCount} image. Faces have been blurred for privacy.`;
+
           message += `\n\nDetected Text: ${allDetectedTexts.join(", ")}`;
-          
+
           Alert.alert("Photo Processed", message);
         } else {
-          Alert.alert("Success", "Photo taken successfully! No sensitive content detected.");
+          Alert.alert(
+            "Success",
+            "Photo taken successfully! No faces detected."
+          );
         }
       }
     } catch (error) {
@@ -120,15 +137,15 @@ export function GalleryScreen() {
     try {
       const validImages = await imageHandler.pickFromGallery();
       if (validImages.length > 0) {
-        const updatedImages = [...selectedImages, ...validImages];
+        const updatedImages = [...validImages, ...selectedImages];
         setSelectedImages(updatedImages);
         await storageManager.saveImages(updatedImages);
-        
+
         // Process each image for sensitive content detection and blur
         let totalSensitiveItems = 0;
         let processedCount = 0;
         let allDetectedTexts: string[] = [];
-        
+
         for (const imagePath of validImages) {
           const result = await processImageForSensitiveContent(imagePath);
           totalSensitiveItems += result.itemCount;
@@ -137,20 +154,25 @@ export function GalleryScreen() {
             allDetectedTexts.push(result.detectedTexts);
           }
         }
-        
+
         // Reload images to refresh the gallery with blurred versions
         await loadImagesFromStorage();
-        
+
+        // Refresh file system viewer
+        setFileSystemRefreshKey((prev) => prev + 1);
+
         // Show meaningful feedback with detected text debug info
         if (totalSensitiveItems > 0) {
-          let message = `Selected ${validImages.length} image(s). Found ${totalSensitiveItems} sensitive item(s) in ${processedCount} image(s). Content has been automatically blurred for privacy.`;
-          
-          
+          let message = `Selected ${validImages.length} image(s). Found ${totalSensitiveItems} face(s) in ${processedCount} image(s). Faces have been blurred for privacy.`;
+
           message += `\n\nDetected Text: ${allDetectedTexts.join(", ")}`;
-          
+
           Alert.alert("Images Processed", message);
         } else {
-          Alert.alert("Success", `${validImages.length} image(s) selected! No sensitive content detected.`);
+          Alert.alert(
+            "Success",
+            `${validImages.length} image(s) selected! No faces detected.`
+          );
         }
       }
     } catch (error) {
@@ -241,6 +263,8 @@ export function GalleryScreen() {
           )}
         </View>
       </View>
+
+      <FileSystemViewer key={fileSystemRefreshKey} />
 
       <ScrollView
         style={styles.scrollView}

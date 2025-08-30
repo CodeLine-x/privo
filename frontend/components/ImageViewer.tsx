@@ -24,7 +24,7 @@ export function ImageViewer({ uri, style, onError }: ImageViewerProps) {
 
   const getImageToDisplay = (): string => {
     if (!showOriginal && imageMetadata?.blurredPath) {
-      return imageMetadata.blurredPath; // Show blurred
+      return imageMetadata.blurredPath; // Show full-size blurred for better quality
     }
     return uri; // Show original (fallback or when showOriginal is true)
   };
