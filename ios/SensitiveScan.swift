@@ -140,8 +140,9 @@ class SensitiveScan: NSObject {
       let width = coordinate.width
       let height = coordinate.height
       
-      // Add padding around face for better blur coverage
-      let padding: CGFloat = 30
+      // Use different padding for faces vs text
+      // Faces need more padding for privacy, text needs minimal padding for precision
+      let padding: CGFloat = coordinate.type == .face ? 30 : 5
       let blurRect = CGRect(
         x: max(0, x - padding),
         y: max(0, y - padding),
@@ -152,14 +153,22 @@ class SensitiveScan: NSObject {
       // Save the graphics state
       context.saveGState()
       
-      // Create elliptical clipping path for more natural blur
-      let ellipsePath = UIBezierPath(ovalIn: blurRect)
-      ellipsePath.addClip()
+      // Create rectangular clipping path for sharp, pixelated blur
+      let rectanglePath = UIBezierPath(rect: blurRect)
+      rectanglePath.addClip()
       
-      // Create blurred version of the face region
-      let faceImage = cropImage(image, to: blurRect)
-      if let blurredFaceImage = applyBlur(to: faceImage) {
-        blurredFaceImage.draw(in: blurRect)
+      // Use different blur methods: pixelated for text, smooth for faces
+      let regionImage = cropImage(image, to: blurRect)
+      if coordinate.type == .face {
+        // Smooth heavy blur for faces
+        if let heavyBlurredImage = applyHeavySquareBlur(to: regionImage) {
+          heavyBlurredImage.draw(in: blurRect)
+        }
+      } else {
+        // Pixelated blur for text/words
+        if let pixelatedImage = applyPixelatedBlur(to: regionImage) {
+          pixelatedImage.draw(in: blurRect)
+        }
       }
       
       // Restore the graphics state
@@ -180,13 +189,48 @@ class SensitiveScan: NSObject {
     return croppedImage
   }
   
+  private func applyPixelatedBlur(to image: UIImage?) -> UIImage? {
+    guard let image = image,
+          let ciImage = CIImage(image: image) else { return nil }
+    
+    // Create pixelated effect for text/words
+    let pixellateFilter = CIFilter(name: "CIPixellate")!
+    pixellateFilter.setValue(ciImage, forKey: kCIInputImageKey)
+    pixellateFilter.setValue(15.0, forKey: kCIInputScaleKey) // Medium pixel size for text
+    
+    guard let outputImage = pixellateFilter.outputImage else { return nil }
+    
+    let context = CIContext()
+    guard let cgImage = context.createCGImage(outputImage, from: ciImage.extent) else { return nil }
+    
+    return UIImage(cgImage: cgImage)
+  }
+  
+  private func applyHeavySquareBlur(to image: UIImage?) -> UIImage? {
+    guard let image = image,
+          let ciImage = CIImage(image: image) else { return nil }
+    
+    // Apply extremely heavy Gaussian blur for faces
+    let blurFilter = CIFilter(name: "CIGaussianBlur")!
+    blurFilter.setValue(ciImage, forKey: kCIInputImageKey)
+    blurFilter.setValue(10.0, forKey: kCIInputRadiusKey) // Very heavy blur for faces
+    
+    guard let outputImage = blurFilter.outputImage else { return nil }
+    
+    let context = CIContext()
+    guard let cgImage = context.createCGImage(outputImage, from: ciImage.extent) else { return nil }
+    
+    return UIImage(cgImage: cgImage)
+  }
+  
+  // Keep the old method as backup
   private func applyBlur(to image: UIImage?) -> UIImage? {
     guard let image = image,
           let ciImage = CIImage(image: image) else { return nil }
     
     let blurFilter = CIFilter(name: "CIGaussianBlur")!
     blurFilter.setValue(ciImage, forKey: kCIInputImageKey)
-    blurFilter.setValue(25.0, forKey: kCIInputRadiusKey) // Increased blur for better privacy
+    blurFilter.setValue(10.0, forKey: kCIInputRadiusKey) // Increased blur for better privacy
     
     guard let outputImage = blurFilter.outputImage else { return nil }
     

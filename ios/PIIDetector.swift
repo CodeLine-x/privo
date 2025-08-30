@@ -28,7 +28,27 @@ class PIIDetector {
         .personalName  // Only detect personal names, skip places/orgs for now
     ]
     
-    // MARK: - Main PII Detection Function
+    // MARK: - PII Range Detection for Word-Level Blurring
+    struct PIIMatch {
+        let range: NSRange
+        let type: String
+        let matchedText: String
+    }
+    
+    // Returns specific ranges of PII within the text for word-level blurring
+    static func detectPIIRanges(in text: String) -> [PIIMatch] {
+        var matches: [PIIMatch] = []
+        
+        // 1. Check regex patterns first
+        matches.append(contentsOf: findRegexPIIRanges(in: text))
+        
+        // 2. Check for named entities (names)
+        matches.append(contentsOf: findNamedEntityRanges(in: text))
+        
+        return matches
+    }
+    
+    // MARK: - Main PII Detection Function (Legacy)
     static func detectPII(in texts: [String]) -> [String] {
         var piiTexts: [String] = []
         
@@ -119,6 +139,88 @@ class PIIDetector {
             // Exact match or close variants (e.g., "Hii" or "Whats")
             normalizedWord == commonWord || normalizedWord.hasPrefix(commonWord) && normalizedWord.count <= commonWord.count + 2
         }
+    }
+    
+    // MARK: - Word-Level PII Range Detection Methods
+    private static func findRegexPIIRanges(in text: String) -> [PIIMatch] {
+        var matches: [PIIMatch] = []
+        
+        let patterns: [(pattern: String, type: String)] = [
+            (#"\b\(\d{3}\)\s*\d{3}[-.]?\d{4}\b"#, "phone"),
+            (#"\b\d{3}[-]\d{3}[-]\d{4}\b"#, "phone"),
+            (#"\b\+1[\s-]\d{3}[\s-]\d{3}[\s-]\d{4}\b"#, "phone"),
+            (#"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"#, "email"),
+            (#"\b\d{3}[-]\d{2}[-]\d{4}\b"#, "ssn"),
+            (#"\b\d{4}[\s-]\d{4}[\s-]\d{4}[\s-]\d{4}\b"#, "creditcard"),
+            (#"https?://[^\s]+"#, "url")
+        ]
+        
+        for (pattern, type) in patterns {
+            do {
+                let regex = try NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+                let range = NSRange(location: 0, length: text.utf16.count)
+                
+                let regexMatches = regex.matches(in: text, options: [], range: range)
+                
+                for match in regexMatches {
+                    let matchedText = (text as NSString).substring(with: match.range)
+                    matches.append(PIIMatch(
+                        range: match.range,
+                        type: type,
+                        matchedText: matchedText
+                    ))
+                }
+            } catch {
+                print("Invalid regex pattern: \(pattern)")
+                continue
+            }
+        }
+        
+        return matches
+    }
+    
+    private static func findNamedEntityRanges(in text: String) -> [PIIMatch] {
+        var matches: [PIIMatch] = []
+        
+        // Skip very short text
+        guard text.count >= 3 else { return matches }
+        
+        let tagger = NLTagger(tagSchemes: [.nameType])
+        tagger.string = text
+        
+        var potentialEntities: [PIIMatch] = []
+        
+        tagger.enumerateTags(in: text.startIndex..<text.endIndex,
+                            unit: .word,
+                            scheme: .nameType,
+                            options: [.omitWhitespace, .omitPunctuation, .omitOther]) { tag, tokenRange in
+            if let tag = tag, tag == .personalName {
+                let entityText = String(text[tokenRange])
+                
+                // Apply same filtering as original PIIDetector
+                if entityText.count >= 2 &&
+                   !isCommonWord(entityText) &&
+                   entityText.first?.isUppercase == true &&
+                   !entityText.contains(where: { $0.isNumber }) {
+                    
+                    // Convert String.Index range to NSRange
+                    let nsRange = NSRange(tokenRange, in: text)
+                    potentialEntities.append(PIIMatch(
+                        range: nsRange,
+                        type: "name",
+                        matchedText: entityText
+                    ))
+                }
+            }
+            return true
+        }
+        
+        // Only include names if we have plausible name patterns
+        if potentialEntities.count >= 2 || (potentialEntities.count == 1 && potentialEntities[0].matchedText.count >= 4) {
+            matches.append(contentsOf: potentialEntities)
+        }
+        
+        return matches
     }
     
     // MARK: - Debug Function to Show What Was Detected
