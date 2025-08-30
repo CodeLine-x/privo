@@ -61,18 +61,18 @@ export function ImageGrid({
   };
 
   const getImageToDisplay = (imageUri: string): string => {
-    // Show thumbnail version if available for faster loading
+    // Show blurred version if available, otherwise show original
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    return metadata?.thumbnailPath || metadata?.blurredPath || imageUri;
+    return metadata?.blurredPath || imageUri;
   };
 
   const hasBlurredVersion = (imageUri: string): boolean => {
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    return !!metadata?.blurredPath || !!metadata?.thumbnailPath;
+    return !!metadata?.blurredPath;
   };
 
   // Sort images by upload date (newest first) and create 3-column grid

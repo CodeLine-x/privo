@@ -318,35 +318,24 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
         }
     }
 
-    // Save both full-size blurred image and lightweight thumbnail
+    // Save blurred image only
     private fun saveBitmapToFile(bitmap: Bitmap, originalFile: File): String? {
         return try {
             val tempDir = reactApplicationContext.cacheDir
             val fileName = originalFile.nameWithoutExtension
             val fileExtension = originalFile.extension
             
-            // Save full-size blurred image
+            // Save blurred image
             val blurredFileName = "${fileName}_blurred.$fileExtension"
             val blurredFile = File(tempDir, blurredFileName)
             
-            Log.d(TAG, "Saving full-size blurred image to: ${blurredFile.absolutePath}")
+            Log.d(TAG, "Saving blurred image to: ${blurredFile.absolutePath}")
             
             FileOutputStream(blurredFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
             
-            // Create and save lightweight thumbnail (300x300 max)
-            val thumbnailBitmap = createThumbnail(bitmap, 300)
-            val thumbnailFileName = "${fileName}_blurred_thumb.$fileExtension"
-            val thumbnailFile = File(tempDir, thumbnailFileName)
-            
-            Log.d(TAG, "Saving thumbnail to: ${thumbnailFile.absolutePath}")
-            
-            FileOutputStream(thumbnailFile).use { out ->
-                thumbnailBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
-            }
-            
-            Log.d(TAG, "Both full-size and thumbnail blurred images saved successfully")
+            Log.d(TAG, "Blurred image saved successfully")
             blurredFile.absolutePath
         } catch (exception: Exception) {
             Log.e(TAG, "Error saving bitmap to file", exception)
@@ -354,15 +343,4 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
         }
     }
     
-    // Create lightweight thumbnail for faster loading
-    private fun createThumbnail(bitmap: Bitmap, maxSize: Int): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        
-        val scale = minOf(maxSize.toFloat() / width, maxSize.toFloat() / height)
-        val newWidth = (width * scale).toInt()
-        val newHeight = (height * scale).toInt()
-        
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
-    }
 }
