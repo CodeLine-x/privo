@@ -8,6 +8,7 @@ class ScanforText {
   
   static func detectText(in image: CGImage, imageSize: CGSize, completion: @escaping ([SensitiveCoordinate]) -> Void) {
     let request = VNRecognizeTextRequest()
+    request.recognitionLevel = .accurate // Better accuracy
     let handler = VNImageRequestHandler(cgImage: image, options: [:])
     
     do {
