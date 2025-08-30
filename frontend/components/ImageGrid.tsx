@@ -105,11 +105,11 @@ export function ImageGrid({
                   console.error("Image loading error:", error);
                 }}
               />
-              <View style={styles.imageOverlay}>
-                <Text style={styles.imageText}>
-                  {hasBlurredVersion(imageData.uri) ? "🔒" : "📷"}
-                </Text>
-              </View>
+              {hasBlurredVersion(imageData.uri) && (
+                <View style={styles.imageOverlay}>
+                  <Text style={styles.imageText}>Private</Text>
+                </View>
+              )}
             </View>
           </TouchableWithoutFeedback>
         ))}
@@ -141,34 +141,34 @@ export function ImageGrid({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 12,
+    paddingHorizontal: 2,
   },
   imageContainer: {
-    width: "31%", // Slightly less than 33.33% to account for spacing
-    aspectRatio: 1, // Square images
-    borderRadius: 12,
+    width: "31.5%",
+    aspectRatio: 1,
+    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   image: {
     width: "100%",
@@ -178,18 +178,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: 12,
+    backgroundColor: "#F78231",
+    borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   imageText: {
-    color: "#ffffff",
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 11,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
   emptyContainer: {
-    width: "31%",
+    width: "31.5%",
     aspectRatio: 1,
   },
 });

@@ -15,14 +15,23 @@ export function ClearButton({ onPress }: ClearButtonProps) {
 
 const styles = StyleSheet.create({
   clearButton: {
-    backgroundColor: "#dc3545",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: "#F78231",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: "#F78231",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   clearButtonText: {
-    color: "#ffffff",
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 15,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
 });

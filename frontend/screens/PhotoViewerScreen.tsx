@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
   Modal,
   TextInput,
   Alert,
+  Animated,
+  PanResponder,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { StorageManager, ImageData } from "../utils/StorageManager";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
@@ -27,7 +30,7 @@ export function PhotoViewerScreen({
   onBack,
 }: PhotoViewerScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [unlockedImages, setUnlockedImages] = useState<Set<number>>(new Set());
@@ -36,6 +39,10 @@ export function PhotoViewerScreen({
   );
   const [showInfo, setShowInfo] = useState(false);
   const [imageMetadata, setImageMetadata] = useState<ImageData[]>([]);
+
+  // Animation values
+  const headerAnimation = useRef(new Animated.Value(0)).current;
+  const footerAnimation = useRef(new Animated.Value(0)).current;
 
   const storageManager = new StorageManager();
 
@@ -49,7 +56,23 @@ export function PhotoViewerScreen({
   };
 
   const toggleControls = () => {
-    setShowControls(!showControls);
+    const newShowControls = !showControls;
+    setShowControls(newShowControls);
+
+    const toValue = newShowControls ? 1 : 0;
+
+    Animated.parallel([
+      Animated.timing(headerAnimation, {
+        toValue,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(footerAnimation, {
+        toValue,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handleEnterPassword = () => {
@@ -83,13 +106,11 @@ export function PhotoViewerScreen({
 
   const getImageToDisplay = (index: number): string => {
     if (unlockedImages.has(index)) {
-      // Show original image if unlocked
       const metadata = imageMetadata.find(
         (item) => item.blurredPath === images[index]
       );
       return metadata?.originalPath || images[index];
     }
-    // Show blurred image
     return images[index];
   };
 
@@ -100,14 +121,27 @@ export function PhotoViewerScreen({
     return metadata || null;
   };
 
+  // --- Swipe down handler ---
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > 20,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 50) {
+          onBack(); // swipe down closes viewer
+        }
+      },
+    })
+  ).current;
+
   return (
-    <View style={styles.container}>
-      {/* Main Image Layer - Full Screen */}
+    <View style={styles.container} {...panResponder.panHandlers}>
+      {/* Main Image Layer */}
       <ScrollView
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        scrollEnabled={!showInfo} // Disable swipe when info popup is active
+        scrollEnabled={!showInfo}
         onMomentumScrollEnd={(event) => {
           const newIndex = Math.round(
             event.nativeEvent.contentOffset.x / screenWidth
@@ -127,10 +161,7 @@ export function PhotoViewerScreen({
         {images.map((imageUri, index) => (
           <View key={index} style={styles.imagePage}>
             <TouchableOpacity
-              style={[
-                styles.imageContainer,
-                { backgroundColor: showControls ? "#ffffff" : "#000000" },
-              ]}
+              style={styles.imageContainer}
               onPress={toggleControls}
               activeOpacity={1}
             >
@@ -139,87 +170,92 @@ export function PhotoViewerScreen({
                 style={styles.image}
                 resizeMode="contain"
               />
-
-              {/* Enter Password Button - Always show if not authenticated */}
-              {!authenticatedImages.has(index) && (
-                <View style={styles.passwordButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.passwordButton}
-                    onPress={handleEnterPassword}
-                  >
-                    <Text style={styles.passwordButtonText}>
-                      Enter Password
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
 
-      {/* Header Overlay Layer */}
-      {showControls && (
-        <View style={styles.headerOverlay}>
-          <TouchableOpacity onPress={onBack} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>←</Text>
-          </TouchableOpacity>
+      {/* Header Overlay */}
+      <Animated.View
+        style={[
+          styles.headerOverlay,
+          {
+            opacity: headerAnimation,
+            transform: [
+              {
+                translateY: headerAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-120, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={showControls ? "auto" : "none"}
+      >
+        <TouchableOpacity onPress={onBack} style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>←</Text>
+        </TouchableOpacity>
 
-          <Text style={styles.imageCounter}>
-            {currentIndex + 1} / {images.length}
-          </Text>
+        <Text style={styles.imageCounter}>
+          {currentIndex + 1} / {images.length}
+        </Text>
 
-          <TouchableOpacity
-            onPress={handleInfoPress}
-            style={styles.headerButton}
-          >
-            <Text style={styles.headerButtonText}>ⓘ</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        <TouchableOpacity onPress={handleInfoPress} style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>Info</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Footer Overlay Layer */}
-      {showControls && (
-        <View style={styles.footerOverlay}>
-          <TouchableOpacity style={styles.footerButton}>
-            <Text style={styles.footerButtonIcon}>📤</Text>
-            <Text style={styles.footerButtonText}>Share</Text>
-          </TouchableOpacity>
+      {/* Footer Overlay */}
+      <Animated.View
+        style={[
+          styles.footerOverlay,
+          {
+            opacity: footerAnimation,
+            transform: [
+              {
+                translateY: footerAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [120, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={showControls ? "auto" : "none"}
+      >
+        <TouchableOpacity style={styles.footerButton}>
+          <Text style={styles.footerButtonText}>Share</Text>
+        </TouchableOpacity>
 
-          {/* Show/Hide button - only visible after password is entered */}
-          {authenticatedImages.has(currentIndex) && (
-            <TouchableOpacity
-              style={styles.footerButton}
-              onPress={() => {
-                // Toggle between showing blurred and original image
-                if (unlockedImages.has(currentIndex)) {
-                  setUnlockedImages((prev) => {
-                    const newSet = new Set(prev);
-                    newSet.delete(currentIndex);
-                    return newSet;
-                  });
-                } else {
-                  setUnlockedImages((prev) => new Set([...prev, currentIndex]));
-                }
-              }}
-            >
-              <Text style={styles.footerButtonIcon}>
-                {unlockedImages.has(currentIndex) ? "🙈" : "👁️"}
-              </Text>
-              <Text style={styles.footerButtonText}>
-                {unlockedImages.has(currentIndex) ? "Hide" : "Show"}
-              </Text>
-            </TouchableOpacity>
-          )}
+        {/* Lock/Unlock button */}
+        <TouchableOpacity
+          style={styles.lockButton}
+          onPress={() => {
+            if (authenticatedImages.has(currentIndex)) {
+              if (unlockedImages.has(currentIndex)) {
+                setUnlockedImages((prev) => {
+                  const newSet = new Set(prev);
+                  newSet.delete(currentIndex);
+                  return newSet;
+                });
+              } else {
+                setUnlockedImages((prev) => new Set([...prev, currentIndex]));
+              }
+            } else {
+              handleEnterPassword();
+            }
+          }}
+        >
+          <Ionicons name="lock-closed-outline" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.footerButton}>
-            <Text style={styles.footerButtonIcon}>🗑️</Text>
-            <Text style={styles.footerButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        <TouchableOpacity style={styles.footerButton}>
+          <Text style={styles.footerButtonText}>Delete</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Info Display Modal - Only show if unlocked and showInfo is true */}
+      {/* Info Modal */}
       {authenticatedImages.has(currentIndex) && showInfo && (
         <TouchableOpacity
           style={styles.infoContainer}
@@ -266,11 +302,7 @@ export function PhotoViewerScreen({
       )}
 
       {/* Password Modal */}
-      <Modal
-        visible={isPasswordModalVisible}
-        transparent={true}
-        animationType="fade"
-      >
+      <Modal visible={isPasswordModalVisible} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Enter Password</Text>
@@ -307,215 +339,34 @@ export function PhotoViewerScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000000",
-  },
-  scrollView: {
-    flex: 1,
-    height: screenHeight, // Full screen minus header (100) + footer (160)
-    marginTop: 120,
-    marginBottom: 120,
-  },
-  imagePage: {
-    width: screenWidth,
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageContainer: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  passwordButtonContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  passwordButton: {
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ffffff",
-  },
-  passwordButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  infoContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    zIndex: 3000, // Higher than header/footer (1000) and covers entire screen
-  },
-  infoScrollView: {
-    width: "100%",
-    height: "100%",
-  },
-  infoScrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  infoBox: {
-    backgroundColor: "#ffffff",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%",
-    alignItems: "center",
-  },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#000000",
-  },
-  infoText: {
-    fontSize: 16,
-    color: "#000000",
-    marginBottom: 5,
-  },
-  headerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120, // Fixed header height
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    paddingTop: 50,
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0", // Light grey border bottom
-    zIndex: 1000,
-  },
-  headerButton: {
-    padding: 8,
-  },
-  headerButtonText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  imageCounter: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  footerOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120, // Fixed footer height with extra padding
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    paddingBottom: 50, // Increased margin for Android popups
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0", // Light grey border top
-    zIndex: 1000,
-  },
-  footerButton: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footerButtonIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  footerButtonText: {
-    color: "#000000",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-  },
-  modalContent: {
-    backgroundColor: "#ffffff",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%",
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#000000",
-  },
-  passwordInput: {
-    width: "100%",
-    height: 50,
-    borderColor: "#e0e0e0",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 20,
-    fontSize: 18,
-    color: "#000000",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-  },
-  modalButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-  },
-  cancelButton: {
-    backgroundColor: "#dc3545",
-    borderWidth: 1,
-    borderColor: "#dc3545",
-  },
-  cancelButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  submitButton: {
-    backgroundColor: "#28a745",
-    borderWidth: 1,
-    borderColor: "#28a745",
-  },
-  submitButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  // 🔥 keep all your styles here unchanged (except lockButtonIcon removed)
+  container: { flex: 1, backgroundColor: "#000000" },
+  scrollView: { flex: 1, height: screenHeight, marginTop: 120, marginBottom: 120 },
+  imagePage: { width: screenWidth, height: "100%", justifyContent: "center", alignItems: "center" },
+  imageContainer: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "#000000" },
+  image: { width: "100%", height: "100%" },
+  infoContainer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.7)", zIndex: 3000 },
+  infoScrollView: { width: "100%", height: "100%" },
+  infoScrollContent: { flexGrow: 1, justifyContent: "center", alignItems: "center" },
+  infoBox: { backgroundColor: "#FFFFFF", padding: 24, borderRadius: 16, width: "85%", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
+  infoTitle: { fontSize: 22, fontWeight: "700", marginBottom: 16, color: "#2C2C2E", letterSpacing: -0.3 },
+  infoText: { fontSize: 16, color: "#2C2C2E", marginBottom: 8, lineHeight: 22, fontWeight: "500" },
+  headerOverlay: { position: "absolute", top: 0, left: 0, right: 0, height: 120, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingVertical: 16, paddingTop: 54, backgroundColor: "#F7F7F7", borderBottomWidth: 0.5, borderBottomColor: "#E5E5E7", zIndex: 1000 },
+  headerButton: { padding: 12, borderRadius: 12, backgroundColor: "#FFFFFF", minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  headerButtonText: { color: "#2C2C2E", fontSize: 18, fontWeight: "600" },
+  imageCounter: { color: "#2C2C2E", fontSize: 16, fontWeight: "600", letterSpacing: 0.2 },
+  footerOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, height: 120, flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingHorizontal: 24, paddingVertical: 16, paddingBottom: 50, backgroundColor: "#F7F7F7", borderTopWidth: 0.5, borderTopColor: "#E5E5E7", zIndex: 1000 },
+  footerButton: { flex: 1, backgroundColor: "#FFFFFF", paddingVertical: 16, paddingHorizontal: 12, marginHorizontal: 6, alignItems: "center", justifyContent: "center", borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  footerButtonText: { color: "#2C2C2E", fontSize: 15, fontWeight: "600", letterSpacing: 0.1 },
+  lockButton: { width: 50, height: 50, borderRadius: 25, backgroundColor: "#F78231", alignItems: "center", justifyContent: "center", marginHorizontal: 6, shadowColor: "#F78231", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.7)" },
+  modalContent: { backgroundColor: "#FFFFFF", padding: 24, borderRadius: 16, width: "85%", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
+  modalTitle: { fontSize: 24, fontWeight: "700", marginBottom: 24, color: "#2C2C2E", letterSpacing: -0.3 },
+  passwordInput: { width: "100%", height: 52, borderColor: "#E5E5E7", borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 16, marginBottom: 24, fontSize: 16, color: "#2C2C2E", backgroundColor: "#F7F7F7" },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between", width: "100%", gap: 12 },
+  modalButton: { flex: 1, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, alignItems: "center" },
+  cancelButton: { backgroundColor: "#8E8E93", borderWidth: 0 },
+  cancelButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", letterSpacing: 0.1 },
+  submitButton: { backgroundColor: "#F78231", borderWidth: 0 },
+  submitButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", letterSpacing: 0.1 },
 });

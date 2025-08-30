@@ -125,8 +125,13 @@ export class StorageManager {
     try {
       const metadata = await this.loadImageMetadata();
 
-      // Generate thumbnail path from blurred path
-      const thumbnailPath = blurredPath.replace("_blurred.", "_blurred_thumb.");
+      // Generate thumbnail path from blurred path only for Android
+      // iOS only creates blurred images, not separate thumbnails
+      let thumbnailPath: string | undefined;
+      if (Platform.OS === "android" && blurredPath.includes("_blurred.")) {
+        thumbnailPath = blurredPath.replace("_blurred.", "_blurred_thumb.");
+      }
+      // For iOS, thumbnailPath stays undefined so fallback logic uses blurredPath
 
       // Check if metadata exists for this image, if not create it
       let updatedMetadata;

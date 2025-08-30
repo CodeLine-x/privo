@@ -11,9 +11,9 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { PhotoViewerScreen } from "./PhotoViewerScreen";
-import { UploadButton } from "../components/UploadButton";
 import { ClearButton } from "../components/ClearButton";
 import { ImageGrid } from "../components/ImageGrid";
+import { BottomNavBar } from "../components/BottomNavBar";
 import { ImageHandler } from "../utils/ImageHandler";
 import { StorageManager, ImageData } from "../utils/StorageManager";
 import { NativeBridge } from "../utils/NativeBridge";
@@ -387,7 +387,6 @@ export function GalleryScreen() {
           )}
         </View>
         <View style={styles.headerButtons}>
-          <UploadButton onPress={handleUpload} />
           {selectedImages.length > 0 && (
             <ClearButton onPress={clearAllImages} />
           )}
@@ -413,6 +412,13 @@ export function GalleryScreen() {
           </View>
         )}
       </ScrollView>
+      
+      <BottomNavBar 
+        activeTab="gallery"
+        onGalleryPress={() => {/* Already on gallery */}}
+        onHomePress={() => {/* Navigate to home if implemented */}}
+        onUploadPress={handleUpload}
+      />
     </View>
   );
 }
@@ -420,53 +426,58 @@ export function GalleryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#F7F7F7",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e9ecef",
-    paddingTop: 50,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: "#F7F7F7",
+    paddingTop: 54,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#212529",
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#2C2C2E",
+    letterSpacing: -0.5,
   },
   imageCount: {
-    fontSize: 14,
-    color: "#6c757d",
-    marginTop: 2,
+    fontSize: 15,
+    color: "#8E8E93",
+    marginTop: 4,
+    fontWeight: "500",
   },
   headerButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   scrollView: {
     flex: 1,
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 104,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 50,
+    paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 18,
-    color: "#6c757d",
+    fontSize: 20,
+    color: "#2C2C2E",
     fontWeight: "600",
     marginBottom: 8,
+    textAlign: "center",
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#adb5bd",
+    fontSize: 16,
+    color: "#8E8E93",
     textAlign: "center",
+    fontWeight: "400",
+    lineHeight: 22,
   },
 });
