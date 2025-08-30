@@ -1,48 +1,53 @@
 import Foundation
-import Vision
 import UIKit
 import CoreImage
 import CoreGraphics
+import MLKitVision
+import MLKitFaceDetection
 
 class ScanforFace {
   
+  // ML Kit Face Detector (lazy initialization)
+  private static let faceDetector: FaceDetector = {
+    let options = FaceDetectorOptions()
+    options.performanceMode = .accurate
+    options.landmarkMode = .none  // We only need bounding boxes for privacy
+    options.classificationMode = .none  // No need for smile/eyes detection
+    return FaceDetector.faceDetector(options: options)
+  }()
+  
   static func detectFaces(in image: CGImage, imageSize: CGSize, completion: @escaping ([SensitiveCoordinate]) -> Void) {
-    let request = VNDetectFaceRectanglesRequest()
-    let handler = VNImageRequestHandler(cgImage: image, options: [:])
+    // Convert CGImage to MLKitVision Image
+    let visionImage = VisionImage(image: UIImage(cgImage: image))
+    visionImage.orientation = .up
     
-    do {
-      try handler.perform([request])
-      
-      if let observations = request.results {
-        let faceCoordinates = observations.map { observation -> SensitiveCoordinate in
-          // Vision framework uses normalized coordinates (0-1) with origin at bottom-left
-          // UIImage uses pixel coordinates with origin at top-left
-          let boundingBox = observation.boundingBox
-          
-          // Convert to pixel coordinates
-          let pixelX = boundingBox.origin.x * imageSize.width
-          let pixelWidth = boundingBox.size.width * imageSize.width
-          let pixelHeight = boundingBox.size.height * imageSize.height
-          
-          // Flip Y coordinate from bottom-left to top-left origin
-          let pixelY = imageSize.height - (boundingBox.origin.y * imageSize.height + pixelHeight)
-          
-          return SensitiveCoordinate(
-            x: pixelX,
-            y: pixelY,
-            width: pixelWidth,
-            height: pixelHeight,
-            confidence: observation.confidence,
-            type: .face,
-            textContent: nil
-          )
-        }
-        completion(faceCoordinates)
-      } else {
+    faceDetector.process(visionImage) { faces, error in
+      if let error = error {
         completion([])
+        return
       }
-    } catch {
-      completion([])
+      
+      guard let faces = faces, !faces.isEmpty else {
+        completion([])
+        return
+      }
+      
+      let faceCoordinates = faces.map { face -> SensitiveCoordinate in
+        // ML Kit uses UIKit coordinates (top-left origin) - no conversion needed
+        let boundingBox = face.frame
+        
+        return SensitiveCoordinate(
+          x: boundingBox.origin.x,
+          y: boundingBox.origin.y, 
+          width: boundingBox.size.width,
+          height: boundingBox.size.height,
+          confidence: 1.0, // ML Kit doesn't provide confidence for face bounds
+          type: .face,
+          textContent: nil
+        )
+      }
+      
+      completion(faceCoordinates)
     }
   }
   

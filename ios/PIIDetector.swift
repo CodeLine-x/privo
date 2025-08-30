@@ -1,5 +1,6 @@
 import Foundation
 import NaturalLanguage
+import MLKitEntityExtraction
 
 class PIIDetector {
     
@@ -35,17 +36,38 @@ class PIIDetector {
         let matchedText: String
     }
     
+    // MARK: - ML Kit Entity Extractor (Lazy initialization)
+    private static var entityExtractor: EntityExtractor? = {
+        let options = EntityExtractorOptions(modelIdentifier: .english)
+        let extractor = EntityExtractor.entityExtractor(options: options)
+        
+        // Ensure model is downloaded
+        extractor.downloadModelIfNeeded { error in
+            if let error = error {
+                print("❌ ML Kit model download failed: \(error)")
+            } else {
+                print("✅ ML Kit model ready for entity extraction")
+            }
+        }
+        
+        return extractor
+    }()
+    
     // Returns specific ranges of PII within the text for word-level blurring
     static func detectPIIRanges(in text: String) -> [PIIMatch] {
         var matches: [PIIMatch] = []
         
-        // 1. Check regex patterns first
+        // 1. Use ML Kit for enhanced entity detection (if available)
+        matches.append(contentsOf: findMLKitEntityRanges(in: text))
+        
+        // 2. Check regex patterns (for entities ML Kit might miss)
         matches.append(contentsOf: findRegexPIIRanges(in: text))
         
-        // 2. Check for named entities (names)
+        // 3. Check for named entities (names) using Apple NL
         matches.append(contentsOf: findNamedEntityRanges(in: text))
         
-        return matches
+        // Remove duplicates based on overlapping ranges
+        return removeDuplicateMatches(matches)
     }
     
     // MARK: - Main PII Detection Function (Legacy)
@@ -141,6 +163,127 @@ class PIIDetector {
         }
     }
     
+    // MARK: - ML Kit Entity Detection
+    private static func findMLKitEntityRanges(in text: String) -> [PIIMatch] {
+        var matches: [PIIMatch] = []
+        
+        print("🔍 ML Kit: Analyzing text: '\(text)'")
+        
+        // Check if ML Kit is available (will be nil until pod is installed)
+        guard let extractor = entityExtractor else {
+            print("❌ ML Kit Entity Extractor not available - using fallback methods")
+            return matches
+        }
+        
+        print("✅ ML Kit Entity Extractor available")
+        
+        // Create dispatch group for async operation
+        let group = DispatchGroup()
+        group.enter()
+        
+        // ML Kit entity detection is async, but we need sync for our current architecture
+        extractor.annotateText(text) { result, error in
+            defer { group.leave() }
+            
+            if let error = error {
+                print("❌ ML Kit entity detection error: \(error)")
+                return
+            }
+            
+            guard let annotations = result else { 
+                print("⚠️ ML Kit returned no annotations")
+                return 
+            }
+            
+            print("📊 ML Kit found \(annotations.count) annotations")
+            
+            for annotation in annotations {
+                print("📍 Annotation range: \(annotation.range), entities: \(annotation.entities.count)")
+                
+                for entity in annotation.entities {
+                    print("🏷️ Entity type: \(entity.entityType)")
+                    
+                    // Map ML Kit entity types to our PII types
+                    let piiType = mapMLKitEntityType(entity.entityType)
+                    if !piiType.isEmpty {
+                        let range = NSRange(location: Int(annotation.range.location), 
+                                          length: Int(annotation.range.length))
+                        let matchedText = (text as NSString).substring(with: range)
+                        
+                        print("✅ ML Kit detected PII: '\(matchedText)' as \(piiType)")
+                        
+                        matches.append(PIIMatch(
+                            range: range,
+                            type: piiType,
+                            matchedText: matchedText
+                        ))
+                    } else {
+                        print("⚠️ ML Kit entity type \(entity.entityType) not mapped to PII")
+                    }
+                }
+            }
+            
+            print("🎯 ML Kit final matches: \(matches.count)")
+        }
+        
+        // Wait for async operation to complete (with timeout)
+        let waitResult = group.wait(timeout: .now() + 3.0)
+        if waitResult == .timedOut {
+            print("⏱️ ML Kit detection timed out")
+        }
+        
+        return matches
+    }
+    
+    private static func mapMLKitEntityType(_ entityType: EntityType) -> String {
+        switch entityType {
+        case .address:
+            return "address"
+        case .dateTime:
+            return "datetime"
+        case .email:
+            return "email"
+        case .flightNumber:
+            return "flight"
+        case .IBAN:
+            return "iban"
+        case .ISBN:
+            return "isbn"
+        case .paymentCard:
+            return "creditcard"
+        case .phone:
+            return "phone"
+        case .trackingNumber:
+            return "tracking"
+        case .URL:
+            return "url"
+        case .money:
+            return "money"
+        default:
+            return ""
+        }
+    }
+    
+    private static func removeDuplicateMatches(_ matches: [PIIMatch]) -> [PIIMatch] {
+        var uniqueMatches: [PIIMatch] = []
+        
+        for match in matches {
+            // Check if this match overlaps with any existing match
+            let hasOverlap = uniqueMatches.contains { existingMatch in
+                let existingEnd = existingMatch.range.location + existingMatch.range.length
+                let matchEnd = match.range.location + match.range.length
+                
+                return !(match.range.location >= existingEnd || existingMatch.range.location >= matchEnd)
+            }
+            
+            if !hasOverlap {
+                uniqueMatches.append(match)
+            }
+        }
+        
+        return uniqueMatches
+    }
+    
     // MARK: - Word-Level PII Range Detection Methods
     private static func findRegexPIIRanges(in text: String) -> [PIIMatch] {
         var matches: [PIIMatch] = []
@@ -221,6 +364,26 @@ class PIIDetector {
         }
         
         return matches
+    }
+    
+    // MARK: - ML Kit Test Function
+    static func testMLKit() {
+        print("🧪 Testing ML Kit with sample data...")
+        let testTexts = [
+            "Call me at (555) 123-4567",
+            "Email me at test@example.com", 
+            "My address is 123 Main Street, Anytown, CA 90210",
+            "Credit card: 4111 1111 1111 1111"
+        ]
+        
+        for testText in testTexts {
+            print("\n🧪 Testing: '\(testText)'")
+            let matches = findMLKitEntityRanges(in: testText)
+            print("Result: \(matches.count) matches found")
+            for match in matches {
+                print("  - \(match.type): '\(match.matchedText)'")
+            }
+        }
     }
     
     // MARK: - Debug Function to Show What Was Detected
