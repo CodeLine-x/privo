@@ -39,11 +39,12 @@ export function ImageGrid({
   };
 
   const getImageToDisplay = (imageUri: string): string => {
-    // Show thumbnail if available, otherwise show blurred version, otherwise show original
+    // Show blurred version if available, otherwise show original
+    // Note: thumbnailPath is now always undefined, so we skip it
     const metadata = imageMetadata.find(
       (item) => item.originalPath === imageUri
     );
-    return metadata?.thumbnailPath || metadata?.blurredPath || imageUri;
+    return metadata?.blurredPath || imageUri;
   };
 
   const hasBlurredVersion = (imageUri: string): boolean => {
