@@ -90,7 +90,7 @@ android {
     namespace 'com.kohzhirong.privo'
     defaultConfig {
         applicationId 'com.kohzhirong.privo'
-        minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 26
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
@@ -178,6 +178,7 @@ dependencies {
     // ML Kit dependencies for face detection and text recognition
     implementation 'com.google.mlkit:face-detection:16.1.5'
     implementation 'com.google.mlkit:text-recognition:16.0.0'
+    implementation 'com.google.mlkit:entity-extraction:16.0.0-beta6'
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
     

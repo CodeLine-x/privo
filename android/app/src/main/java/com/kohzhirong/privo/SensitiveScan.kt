@@ -85,18 +85,18 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 val allCoordinates = faceCoordinates + textCoordinates
                 
                 if (allCoordinates.isEmpty()) {
-                    // No sensitive content found, return original image path
-                    Log.d(TAG, "No sensitive content found, returning original image")
-                    val result = Arguments.createMap().apply {
-                        putBoolean("success", true)
-                        putString("blurredImagePath", imagePath)
-                        putInt("sensitiveItemsFound", 0)
-                        putInt("sensitiveItemsBlurred", 0)
-                        putString("message", "No sensitive content found to blur")
-                        putArray("coordinates", Arguments.createArray())
+                        // No sensitive content found, return original image path
+                        Log.d(TAG, "No sensitive content found, returning original image")
+                        val result = Arguments.createMap().apply {
+                            putBoolean("success", true)
+                            putString("blurredImagePath", imagePath)
+                            putInt("sensitiveItemsFound", 0)
+                            putInt("sensitiveItemsBlurred", 0)
+                            putString("message", "No sensitive content found to blur")
+                            putArray("coordinates", Arguments.createArray())
                         putString("debugDetectedTexts", "")
-                    }
-                    promise.resolve(result)
+                        }
+                        promise.resolve(result)
                     return@execute
                 }
                 
@@ -107,42 +107,42 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
                 
                 // Apply blur to all sensitive content
                 val blurredBitmap = blurSensitiveContent(bitmap, allCoordinates)
-                
-                if (blurredBitmap != null) {
+                        
+                        if (blurredBitmap != null) {
                     // Save blurred image to temporary location
                     val blurredImagePath = saveBlurredImage(blurredBitmap, imageFile, reactApplicationContext.cacheDir)
-                    
-                    if (blurredImagePath != null) {
-                        Log.d(TAG, "Blurred image saved to: $blurredImagePath")
-                        
-                        val result = Arguments.createMap().apply {
-                            putBoolean("success", true)
-                            putString("blurredImagePath", "file://$blurredImagePath")
+                            
+                            if (blurredImagePath != null) {
+                                Log.d(TAG, "Blurred image saved to: $blurredImagePath")
+                                
+                                val result = Arguments.createMap().apply {
+                                    putBoolean("success", true)
+                                    putString("blurredImagePath", "file://$blurredImagePath")
                             putInt("sensitiveItemsFound", allCoordinates.size)
                             putInt("sensitiveItemsBlurred", allCoordinates.size)
                             putString("message", "Successfully blurred ${allCoordinates.size} sensitive item(s)")
-                            putArray("coordinates", Arguments.createArray().apply {
+                                    putArray("coordinates", Arguments.createArray().apply {
                                 allCoordinates.forEach { coordinate ->
-                                    pushMap(Arguments.createMap().apply {
-                                        putDouble("x", coordinate.x)
-                                        putDouble("y", coordinate.y)
-                                        putDouble("width", coordinate.width)
-                                        putDouble("height", coordinate.height)
-                                        putDouble("confidence", coordinate.confidence.toDouble())
-                                        coordinate.textContent?.let { putString("textContent", it) }
+                                            pushMap(Arguments.createMap().apply {
+                                                putDouble("x", coordinate.x)
+                                                putDouble("y", coordinate.y)
+                                                putDouble("width", coordinate.width)
+                                                putDouble("height", coordinate.height)
+                                                putDouble("confidence", coordinate.confidence.toDouble())
+                                                coordinate.textContent?.let { putString("textContent", it) }
+                                            })
+                                        }
                                     })
-                                }
-                            })
                             putString("debugDetectedTexts", piiTextsDebug)
-                        }
-                        promise.resolve(result)
-                    } else {
-                        Log.e(TAG, "Failed to save blurred image")
-                        promise.reject("SAVE_ERROR", "Failed to save blurred image")
-                    }
-                } else {
-                    Log.e(TAG, "Failed to apply blur to image")
-                    promise.reject("BLUR_ERROR", "Failed to apply blur to image")
+                                }
+                                promise.resolve(result)
+                            } else {
+                                Log.e(TAG, "Failed to save blurred image")
+                                promise.reject("SAVE_ERROR", "Failed to save blurred image")
+                            }
+                        } else {
+                            Log.e(TAG, "Failed to apply blur to image")
+                            promise.reject("BLUR_ERROR", "Failed to apply blur to image")
                 }
             }
                 
@@ -160,7 +160,7 @@ class SensitiveScan(reactContext: ReactApplicationContext) : ReactContextBaseJav
             null
         }
     }
-    
+
     /**
      * Blur sensitive content in an image based on coordinates
      * This mimics the iOS blurSensitiveContent workflow
