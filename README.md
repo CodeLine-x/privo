@@ -2,6 +2,8 @@
 
 Privo is a comprehensive privacy protection application that uses artificial intelligence to automatically detect and blur sensitive content in images, including faces and personally identifiable information (PII). Built as a React Native cross-platform mobile application, Privo empowers users to take control of their visual privacy before sharing photos.
 
+https://github.com/user-attachments/assets/0e3eff46-1e0b-4f00-8cdf-21252c80ca12
+
 ## Problem Statement
 
 As AI technologies rapidly integrate into our daily lives, concerns about privacy and security have become more urgent than ever. With the rise of powerful generative AI models, large-scale data collection, and cloud-based deployment, users face increasing risks: sensitive data leakage, identity theft, and privacy violations. Privo addresses these concerns by using AI to defend user privacy and security - implementing "AI for Privacy" rather than AI that compromises privacy.
